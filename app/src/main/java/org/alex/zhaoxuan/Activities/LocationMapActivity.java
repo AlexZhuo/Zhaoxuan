@@ -6,11 +6,12 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
 import android.util.Log;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import org.alex.zhaoxuan.AlxPosition;
 import org.alex.zhaoxuan.R;
 
+import com.alibaba.fastjson.JSON;
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
 import com.amap.api.location.AMapLocationClientOption;
@@ -24,12 +25,28 @@ import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
+import com.lzy.okgo.OkGo;
+import com.lzy.okgo.callback.StringCallback;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+
+import okhttp3.Call;
+import okhttp3.Response;
 
 
 public class LocationMapActivity extends AppCompatActivity {
-
+    private long lastUpdateTime;//上次更新周围的时间
+    private String ipAddress;//服务器IP地址
+    private float mapZoomLevel=15;
+    private HashMap<Integer,Marker> markerMap = new HashMap<>();
     public int userDeviceID;
-    //===============已下是地图SDK================
+    final AlxPosition myPosition = new AlxPosition();//我的位置
+    TextView myLatitude;
+    TextView myLongitude;
+    TextView mySpeed;
+    TextView myAccuracy;
+    //===============①下是地图SDK================
     AMap aMap;
     MapView mapView;
     //===============以下三个声明是定位SDK的=================
@@ -44,6 +61,10 @@ public class LocationMapActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location_map);
+        myLatitude = (TextView)findViewById(R.id.myLatitude);
+        myLongitude = (TextView)findViewById(R.id.myLongitude);
+        mySpeed = (TextView)findViewById(R.id.mySpeed);
+        myAccuracy = (TextView)findViewById(R.id.myAccuracy);
         //======================以下是地图SDK功能====================
         mapView = (MapView) findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 此方法必须重写
@@ -66,24 +87,123 @@ public class LocationMapActivity extends AppCompatActivity {
                 if (amapLocation != null) {
                     if (amapLocation.getErrorCode() == 0) {
                         //可在其中解析amapLocation获取相应内容。
-                        AlxPosition position = new AlxPosition();
-                        position.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
-                        position.latitude = amapLocation.getLatitude();//获取纬度
-                        position.longitude = amapLocation.getLongitude();//获取经度
-                        position.accuracy = amapLocation.getAccuracy();//获取精度信息
-                        position.speed = amapLocation.getSpeed();
+                        myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
+                        myPosition.latitude = amapLocation.getLatitude();//获取纬度
+                        myPosition.longitude = amapLocation.getLongitude();//获取经度
+                        myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
+                        myPosition.speed = amapLocation.getSpeed();
                         //获取定位时间
-                        position.time = amapLocation.getTime();
-                        position.deviceName = Build.BRAND+" "+Build.MODEL;
-                        position.city = amapLocation.getCity();
-                        position.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
-                        position.deviceID = userDeviceID;
-                        Toast.makeText(LocationMapActivity.this,position.toString(),Toast.LENGTH_LONG).show();
+                        myPosition.time = amapLocation.getTime();
+                        myPosition.deviceName = Build.BRAND+" "+Build.MODEL;
+                        myPosition.city = amapLocation.getCity();
+                        myPosition.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
+                        myPosition.deviceID = userDeviceID;
+                        myLatitude.setText("经度："+myPosition.latitude);
+                        myLongitude.setText("纬度："+myPosition.longitude);
+                        mySpeed.setText("速度："+myPosition.speed*3.6+"km/h");
+                        myAccuracy.setText("精确度："+myPosition.accuracy);
                         //参数依次是：视角调整区域的中心点坐标、希望调整到的缩放级别、俯仰角0°~45°（垂直与地图时为0）、偏航角 0~360° (正北方为0)
                         if(amapLocation.getLocationType() != 2){
-                            CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()),15,0,0));
+                            CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()),mapZoomLevel,0,0));
                             aMap.moveCamera(mCameraUpdate);
                         }
+                        //==================向服务器发送位置并接受其他用户的位置=================
+                        OkGo.get("http://192.168.1.11:8080/ZhaoxuanServer/RegistClient")     // 请求方式和请求url
+                                .tag(this)                       // 请求的 tag, 主要用于取消对应的请求
+                                .cacheKey("update")            // 设置当前请求的缓存key,建议每个不同功能的请求设置一个
+                                .params("latitude", myPosition.latitude)
+                                .params("longitude", myPosition.longitude)
+                                .params("accuracy", myPosition.accuracy)
+                                .params("deviceID", myPosition.deviceID)
+                                .params("deviceName", myPosition.deviceName)
+                                .params("city", myPosition.city)
+                                .params("speed", myPosition.speed)
+                                .params("jiedao", myPosition.jiedao)
+                                .params("bearing", myPosition.bearing)
+
+
+                                .execute(new StringCallback() {
+                                    @Override
+                                    public void onSuccess(String s, Call call, Response response) {
+                                        // s 即为所需要的结果
+                                        Log.i("Alex","访问成功"+s);
+                                        ReciveMessage msg = JSON.parseObject(s,ReciveMessage.class);
+                                        if(msg == null)return;
+                                        if(msg.timestamp <= lastUpdateTime)return;
+                                        lastUpdateTime = msg.timestamp;
+                                        double maxLat = 0;//最远精读的绝对值
+                                        double maxlng = 0;//最远纬度的绝对值
+                                        HashMap<Integer,Marker> newMap = new HashMap<Integer, Marker>();
+                                        for(AlxPosition p:msg.locationList){
+                                            double latDis = Math.abs(p.latitude - myPosition.latitude);
+                                            double lngDis = Math.abs(p.longitude - myPosition.longitude);
+                                            if(latDis > maxLat)maxLat = latDis;
+                                            if(lngDis > maxlng)maxlng = lngDis;
+
+                                            //旧的坐标
+                                            if(markerMap.containsKey(p.deviceID)){
+                                                Marker m = markerMap.get(p.deviceID);
+                                                m.setPosition(new LatLng(p.latitude,p.longitude));
+                                                String snippet = "经度:"+p.latitude+"\n纬度:"+p.longitude+
+                                                        "\n速度："+p.speed*3.6+"km/h"+
+                                                        "\n街道："+p.jiedao;
+                                                m.setSnippet(snippet);
+                                                //吧送来的marker放到新的map李去
+                                                newMap.put(p.deviceID,m);
+                                                markerMap.remove(p.deviceID);
+                                                continue;
+                                            }
+                                            //新的坐标
+                                            //=============设置marker============
+                                            LatLng latLng = new LatLng(p.latitude,p.longitude);
+                                            String snippet = "经度:"+p.latitude+"\n纬度:"+p.longitude+
+                                                    "\n速度："+p.speed*3.6+"km/h"+
+                                                    "\n街道："+p.jiedao;
+                                            Marker newMarker = aMap.addMarker(new MarkerOptions().position(latLng).title(p.deviceName).snippet(snippet));
+                                            // 定义 Marker 点击事件监听
+                                            AMap.OnMarkerClickListener markerClickListener = new AMap.OnMarkerClickListener() {
+                                                // marker 对象被点击时回调的接口
+                                                // 返回 true 则表示接口已响应事件，否则返回false
+                                                @Override
+                                                public boolean onMarkerClick(Marker marker) {
+                                                    marker.showInfoWindow();
+                                                    return true;
+                                                }
+                                            };
+                                            // 绑定 Marker 被点击事件
+                                            aMap.setOnMarkerClickListener(markerClickListener);
+                                            newMap.put(p.deviceID,newMarker);
+                                        }
+                                        for(int i:markerMap.keySet()){
+                                            markerMap.get(i).setVisible(false);
+//                                            markerMap.get(i).remove();
+                                            Log.i("Alex","去掉一个设备："+i);
+                                            markerMap.remove(i);
+                                        }
+
+                                        markerMap = newMap;
+                                        Log.i("Alex","最长距离是"+maxLat+"..."+maxlng);
+                                        if(maxLat > 0.01 && maxlng > 0.01) {
+                                            maxLat = maxLat * 1.1;
+                                            maxlng = maxlng * 1.1;
+                                            LatLng southwestLatLng = new LatLng(myPosition.latitude - maxLat, myPosition.longitude - maxlng);
+                                            LatLng northeastLatLng = new LatLng(myPosition.latitude + maxLat, myPosition.longitude + maxlng);
+                                            Log.i("Alex", "经纬度限制：" + southwestLatLng + ",," + northeastLatLng);
+                                            float zoomLevel = aMap.getZoomToSpanLevel(southwestLatLng,northeastLatLng);
+                                            if(zoomLevel < mapZoomLevel) {//需要扩大视野
+                                                Log.i("Alex", "修改zoom Level：" + zoomLevel);
+                                                aMap.moveCamera(CameraUpdateFactory.zoomTo(zoomLevel));
+                                                mapZoomLevel = zoomLevel;
+                                            }
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onError(Call call, Response response, Exception e) {
+                                        super.onError(call, response, e);
+                                        Log.i("Alex","访问失败",e);
+                                    }
+                                });
                     }else {
                         //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
                         Log.e("AmapError","location Error, ErrCode:"
@@ -128,21 +248,6 @@ public class LocationMapActivity extends AppCompatActivity {
         }catch (Exception e){
 
         }
-        //=============设置marker============
-        LatLng latLng = new LatLng(36,119.397972);
-        final Marker marker = aMap.addMarker(new MarkerOptions().position(latLng).title("北京").snippet("哈哈哈"));
-        // 定义 Marker 点击事件监听
-        AMap.OnMarkerClickListener markerClickListener = new AMap.OnMarkerClickListener() {
-            // marker 对象被点击时回调的接口
-            // 返回 true 则表示接口已响应事件，否则返回false
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-                marker.showInfoWindow();
-                return true;
-            }
-        };
-// 绑定 Marker 被点击事件
-        aMap.setOnMarkerClickListener(markerClickListener);
     }
 
     @Override
@@ -174,5 +279,10 @@ public class LocationMapActivity extends AppCompatActivity {
         super.onSaveInstanceState(outState);
         //在activity执行onSaveInstanceState时执行mMapView.onSaveInstanceState (outState)，保存地图当前的状态
         mapView.onSaveInstanceState(outState);
+    }
+
+    public static class ReciveMessage{
+        public long timestamp;
+        public ArrayList<AlxPosition> locationList;
     }
 }
