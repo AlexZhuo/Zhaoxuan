@@ -19,11 +19,11 @@
     <!-- 这个权限用于获取wifi的获取权限，wifi信息会用来进行网络定位 -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
     <!-- 这个权限用于允许程序在手机屏幕关闭后后台进程仍然运行 -->
-    <user-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <meta-data
         android:name="com.amap.api.v2.apikey"
-        android:value="请输入您的用户Key"/>
+        android:value="d486d6367b1b64cd6622c760e0ec6ec3"/>
     <application
         android:name=".MyApplication"
         android:allowBackup="true"
