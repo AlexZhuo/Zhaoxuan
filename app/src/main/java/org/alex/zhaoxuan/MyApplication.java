@@ -29,6 +29,8 @@ public class MyApplication extends Application{
 
                     //可以全局统一设置超时重连次数,默认为三次,那么最差的情况会请求4次(一次原始请求,三次重连请求),不需要可以设置为0
                     .setRetryCount(0)
+                    .setWriteTimeOut(10000)
+                    .setReadTimeOut(10000)
 
                     //如果不想让框架管理cookie（或者叫session的保持）,以下不需要
 //              .setCookieStore(new MemoryCookieStore())            //cookie使用内存缓存（app退出后，cookie消失）

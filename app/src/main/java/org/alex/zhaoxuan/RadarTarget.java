@@ -6,7 +6,7 @@ import java.util.Date;
 /**
  * Created by Administrator on 2017/5/19.
  */
-public class AlxPosition {
+public class RadarTarget {
     public int sensorType;
     public double latitude;
     public double longitude;
@@ -14,8 +14,8 @@ public class AlxPosition {
     public long time;
     public float speed;
     public float bearing;
-    public String deviceName;
-    public int deviceID;
+    public String targetName;
+    public int targetId;
     public String city;
     public String jiedao;
     public String getDate(){
@@ -27,7 +27,7 @@ public class AlxPosition {
 
     @Override
     public String toString() {
-        return "AlxPosition{" +
+        return "RadarTarget{" +
                 "sensorType=" + sensorType +
                 ", latitude=" + latitude +
                 ", longitude=" + longitude +
@@ -35,8 +35,8 @@ public class AlxPosition {
                 ", time=" + time +
                 ", speed=" + speed +
                 ", bearing=" + bearing +
-                ", deviceName='" + deviceName + '\'' +
-                ", deviceID='" + deviceID + '\'' +
+                ", targetName='" + targetName + '\'' +
+                ", targetId='" + targetId + '\'' +
                 ", city='" + city + '\'' +
                 ", jiedao='" + jiedao + '\'' +
                 '}';
