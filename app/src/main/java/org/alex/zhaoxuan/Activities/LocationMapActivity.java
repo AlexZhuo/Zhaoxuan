@@ -166,8 +166,7 @@ public class LocationMapActivity extends AppCompatActivity {
         mLocationOption.setHttpTimeOut(10000);
         //给定位客户端对象设置定位参数
         mLocationClient.setLocationOption(mLocationOption);
-        //启动定位
-        mLocationClient.startLocation();
+
 
 
     }
@@ -184,12 +183,14 @@ public class LocationMapActivity extends AppCompatActivity {
         }catch (Exception e){
 
         }
+        //启动定位
+        mLocationClient.startLocation();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        mLocationClient.stopLocation();//停止定位后，本地定位服务并不会被销毁
+        //mLocationClient.stopLocation();//停止定位后，本地定位服务并不会被销毁
     }
     @Override
     protected void onDestroy() {

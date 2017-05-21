@@ -24,7 +24,7 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.4.0'
     compile 'com.lzy.net:okgo:2.1.4'
-    compile 'com.amap.api:location:latest.integration'
-    compile 'com.amap.api:3dmap:latest.integration'
+    compile 'com.amap.api:location:3.4.0'
+    compile 'com.amap.api:3dmap:5.1.0'
     compile files('src/main/libs/fastjson-1.1.57.android.jar')
 }

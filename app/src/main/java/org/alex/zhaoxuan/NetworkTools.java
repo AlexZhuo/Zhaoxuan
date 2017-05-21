@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.StringCallback;
 
+import java.text.DecimalFormat;
 import java.util.Collection;
 
 /**
@@ -52,7 +53,8 @@ public class NetworkTools {
     public static String genSnippet(RadarTarget p){
         if(p == null) return "无信息";
         return  "经度:"+p.longitude+"\n纬度:"+p.latitude+
-                "\n速度："+p.speed*3.6+"km/h"+
-                "\n街道："+p.jiedao;
+                "\n速度："+new DecimalFormat("0.000").format(p.speed*3.6)+" km/h"+
+                "\n街道："+p.jiedao+
+                "\n精确度："+p.accuracy+" m";
     }
 }
