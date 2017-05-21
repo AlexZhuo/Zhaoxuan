@@ -55,6 +55,7 @@ public class NetworkTools {
         return  "经度:"+p.longitude+"\n纬度:"+p.latitude+
                 "\n速度："+new DecimalFormat("0.000").format(p.speed*3.6)+" km/h"+
                 "\n街道："+p.jiedao+
-                "\n精确度："+p.accuracy+" m";
+                "\n精确度："+p.accuracy+" m"+
+                "\n上次更新："+(Math.round((System.currentTimeMillis() - p.time)/1000))+" 秒前";
     }
 }
