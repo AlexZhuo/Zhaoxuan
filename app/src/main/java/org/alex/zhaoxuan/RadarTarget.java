@@ -18,6 +18,7 @@ public class RadarTarget {
     public int targetId;
     public String city;
     public String jiedao;
+    public double altitude;
     public String getDate(){
         SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         if(time == 0)return "none";
@@ -36,9 +37,10 @@ public class RadarTarget {
                 ", speed=" + speed +
                 ", bearing=" + bearing +
                 ", targetName='" + targetName + '\'' +
-                ", targetId='" + targetId + '\'' +
+                ", targetId=" + targetId +
                 ", city='" + city + '\'' +
                 ", jiedao='" + jiedao + '\'' +
+                ", altitude=" + altitude +
                 '}';
     }
 }

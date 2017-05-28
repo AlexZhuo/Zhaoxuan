@@ -1,7 +1,6 @@
 package org.alex.zhaoxuan.Activities;
 
 import android.content.Context;
-import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
@@ -47,11 +46,9 @@ public class LocationMapActivity extends AppCompatActivity {
     private HashMap<Integer,Marker> markerMap = new HashMap<>();
     public int userDeviceID;
     final RadarTarget myPosition = new RadarTarget();//我的位置
-    TextView myLatitude;
-    TextView myLongitude;
-    TextView mySpeed;
-    TextView myAccuracy;
+    TextView myLatitude,myLongitude,myAltitude,mySpeed,myAccuracy;
     boolean movedToCenter = false;//判断是否已经从北京
+    String myName;
     //===============①下是地图SDK================
     AMap aMap;
     MapView mapView;
@@ -72,7 +69,9 @@ public class LocationMapActivity extends AppCompatActivity {
         myLongitude = (TextView)findViewById(R.id.myLongitude);
         mySpeed = (TextView)findViewById(R.id.mySpeed);
         myAccuracy = (TextView)findViewById(R.id.myAccuracy);
+        myAltitude = (TextView)findViewById(R.id.myAltitude);
         ipAddress = getIntent().getStringExtra("ip");
+        myName = getIntent().getStringExtra("name");
         Log.i("Alex","传过来的IP"+ipAddress);
         //======================以下是地图SDK功能====================
         mapView = (MapView) findViewById(R.id.map);
@@ -96,7 +95,8 @@ public class LocationMapActivity extends AppCompatActivity {
             // 返回 true 则表示接口已响应事件，否则返回false
             @Override
             public boolean onMarkerClick(Marker marker) {
-                marker.showInfoWindow();
+                if(marker.isInfoWindowShown())marker.hideInfoWindow();
+                else marker.showInfoWindow();
                 return true;
             }
         };
@@ -114,18 +114,20 @@ public class LocationMapActivity extends AppCompatActivity {
                         myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
                         myPosition.latitude = amapLocation.getLatitude();//获取纬度
                         myPosition.longitude = amapLocation.getLongitude();//获取经度
+                        myPosition.altitude = amapLocation.getAltitude();
                         myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
                         myPosition.speed = amapLocation.getSpeed();
                         //获取定位时间
                         myPosition.time = amapLocation.getTime();
-                        myPosition.targetName = Build.BRAND+" "+Build.MODEL;
+                        myPosition.targetName = myName;
                         myPosition.city = amapLocation.getCity();
                         myPosition.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
                         myPosition.targetId = userDeviceID;
                         myLatitude.setText("经度："+myPosition.longitude);
                         myLongitude.setText("纬度："+myPosition.latitude);
                         mySpeed.setText("速度："+new DecimalFormat("0.000").format(myPosition.speed*3.6)+" km/h");
-                        myAccuracy.setText("精确度："+myPosition.accuracy+"m");
+                        myAccuracy.setText("精确度："+myPosition.accuracy+" m");
+                        myAltitude.setText("海拔："+myPosition.altitude+" m");
                         //参数依次是：视角调整区域的中心点坐标、希望调整到的缩放级别、俯仰角0°~45°（垂直与地图时为0）、偏航角 0~360° (正北方为0)
                         if(amapLocation.getLocationType() != 2 && !movedToCenter){
 //                            CameraPosition cameraPosition = aMap.getCameraPosition();
@@ -247,7 +249,8 @@ public class LocationMapActivity extends AppCompatActivity {
                             if(markerMap.containsKey(p.targetId)){
                                 Marker m = markerMap.get(p.targetId);
                                 m.setPosition(new LatLng(p.latitude,p.longitude));
-                                m.setSnippet(NetworkTools.genSnippet(p));
+                                m.setTitle(p.targetName);
+                                m.setSnippet(NetworkTools.genSnippet(p,myPosition.latitude,myPosition.longitude));
                                 //吧送来的marker放到新的map李去
                                 newMap.put(p.targetId,m);
                                 markerMap.remove(p.targetId);
@@ -257,7 +260,7 @@ public class LocationMapActivity extends AppCompatActivity {
                             hasNewTarget = true;
                             //=============设置marker============
                             LatLng latLng = new LatLng(p.latitude,p.longitude);
-                            Marker newMarker = aMap.addMarker(new MarkerOptions().position(latLng).title(p.targetName).snippet(NetworkTools.genSnippet(p)));
+                            Marker newMarker = aMap.addMarker(new MarkerOptions().position(latLng).title(p.targetName).snippet(NetworkTools.genSnippet(p,myPosition.latitude,myPosition.longitude)));
                             newMap.put(p.targetId,newMarker);
                         }
                         for(int i:markerMap.keySet()){
@@ -309,7 +312,7 @@ public class LocationMapActivity extends AppCompatActivity {
                             if(markerMap.containsKey(p.targetId)){
                                 Marker m = markerMap.get(p.targetId);
                                 m.setPosition(new LatLng(p.latitude,p.longitude));
-                                m.setSnippet(NetworkTools.genSnippet(p));
+                                m.setSnippet(NetworkTools.genSnippet(p,myPosition.latitude,myPosition.longitude));
                                 //吧送来的marker放到新的map李去
                                 newMap.put(p.targetId,m);
                                 markerMap.remove(p.targetId);
@@ -318,7 +321,7 @@ public class LocationMapActivity extends AppCompatActivity {
                             //新的坐标
                             //=============设置marker============
                             LatLng latLng = new LatLng(p.latitude,p.longitude);
-                            Marker newMarker = aMap.addMarker(new MarkerOptions().position(latLng).title(p.targetName).snippet(NetworkTools.genSnippet(p)));
+                            Marker newMarker = aMap.addMarker(new MarkerOptions().position(latLng).title(p.targetName).snippet(NetworkTools.genSnippet(p,myPosition.latitude,myPosition.longitude)));
                             newMap.put(p.targetId,newMarker);
                         }
                         for(int i:markerMap.keySet()){

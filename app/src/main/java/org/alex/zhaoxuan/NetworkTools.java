@@ -1,5 +1,7 @@
 package org.alex.zhaoxuan;
 
+import android.util.Log;
+
 import com.alibaba.fastjson.JSON;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.StringCallback;
@@ -31,6 +33,7 @@ public class NetworkTools {
                 .params("speed", myPosition.speed)
                 .params("jiedao", myPosition.jiedao)
                 .params("bearing", myPosition.bearing)
+                .params("altitude",myPosition.altitude)
                 .execute(callback);
     }
 
@@ -50,12 +53,17 @@ public class NetworkTools {
                 .execute(callback);
     }
 
-    public static String genSnippet(RadarTarget p){
+    public static String genSnippet(RadarTarget p,double myLat,double mylon){
         if(p == null) return "无信息";
+        double distance = LocationUtils.getDistance(p.latitude,p.longitude,myLat,mylon);
+        Log.i("Alex","距离是："+distance);
+        distance = Math.round(distance);
         return  "经度:"+p.longitude+"\n纬度:"+p.latitude+
                 "\n速度："+new DecimalFormat("0.000").format(p.speed*3.6)+" km/h"+
+                "\n海拔："+p.altitude+" m"+
                 "\n街道："+p.jiedao+
                 "\n精确度："+p.accuracy+" m"+
+                "\n距离我："+ (distance>2000?distance/1000+" km":distance+" m")+
                 "\n上次更新："+(Math.round((System.currentTimeMillis() - p.time)/1000))+" 秒前";
     }
 }

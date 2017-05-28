@@ -1,13 +1,15 @@
 package org.alex.zhaoxuan;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.StringCallback;
@@ -19,9 +21,8 @@ import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
-    Button btn_test;
-    Button btn_map;
-    EditText ipAddress;
+    Button btn_test,btn_map;
+    EditText ipAddress,port,name;
     TextView tv_status;
 
     @Override
@@ -32,11 +33,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn_test = (Button)findViewById(R.id.btn_test);
         btn_map = (Button)findViewById(R.id.btn_map);
         tv_status = (TextView)findViewById(R.id.tv_status);
+        port = (EditText)findViewById(R.id.et_port);
+        name = (EditText)findViewById(R.id.et_name);
         btn_map.setClickable(false);
         btn_map.setEnabled(false);
         btn_map.setOnClickListener(this);
         btn_test.setOnClickListener(this);
 
+        SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
+        port.setText(sp.getString("port","8080"));
+        name.setText(sp.getString("name", Build.BRAND+" "+Build.MODEL));
 
     }
 
@@ -49,7 +55,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 btn_test.setText("请稍后");
                 btn_test.setClickable(false);
                 btn_test.setEnabled(false);
-                OkGo.get("http://"+ipAddress.getText()+"/ZhaoxuanServer/")     // 请求方式和请求url
+                OkGo.get("http://"+ipAddress.getText()+":"+port.getText()+"/ZhaoxuanServer/")     // 请求方式和请求url
                         .tag(this)                       // 请求的 tag, 主要用于取消对应的请求
                         .cacheKey("default_key")            // 设置当前请求的缓存key,建议每个不同功能的请求设置一个
                         .execute(new StringCallback() {
@@ -59,7 +65,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 btn_test.setText("重新测试");
                                 btn_test.setClickable(true);
                                 btn_test.setEnabled(true);
-                                if(s.length() == 0){
+                                Log.i("Alex","字符串是::"+s+"长度是"+s.length());
+                                if(!s.contains("ZhaoxuanServer") ){
                                     tv_status.setText("服务器不可用");
                                     return;
                                 }
@@ -84,8 +91,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         });
                 break;
             case R.id.btn_map:
+                SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
+                SharedPreferences.Editor editor = sp.edit();
+                editor.putString("name", name.getText().toString());
+                editor.putString("port", port.getText().toString());
+                editor.commit();
                 Intent intent = new Intent(MainActivity.this, LocationMapActivity.class);
-                intent.putExtra("ip",ipAddress.getText().toString());
+                intent.putExtra("ip",ipAddress.getText().toString()+":"+port.getText().toString());
+                intent.putExtra("name",name.getText().toString());
                 startActivity(intent);
                 finish();
                 break;
