@@ -41,7 +41,7 @@ import java.util.UUID;
  * given Bluetooth LE device.
  */
 public class BluetoothLeService extends Service {
-    private final static String TAG = "log";//BluetoothLeService.class.getSimpleName();
+    private final static String TAG = "Alex";//BluetoothLeService.class.getSimpleName();
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -245,14 +245,18 @@ public class BluetoothLeService extends Service {
             Log.d(TAG, "Trying to use an existing mBluetoothGatt for connection.");
             if (mBluetoothGatt.connect()) {
                 mConnectionState = STATE_CONNECTING;
+                Log.i("Alex","恭喜你gatt连接建立成功");
                 return true;
             } else {
+                Log.i("Alex","gatt连接建立失败");
                 return false;
             }
         }
-
+        Log.i("Alex","目前不能建立gatt连接");
         final BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        Log.i("Alex","device是"+device.getAddress());
         if (device == null) {
+            Log.i("Alex","无法建立蓝牙连接");
             Log.w(TAG, "Device not found.  Unable to connect.");
             return false;
         }

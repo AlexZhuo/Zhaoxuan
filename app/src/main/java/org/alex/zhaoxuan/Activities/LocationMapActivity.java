@@ -52,7 +52,7 @@ import okhttp3.Response;
 public class LocationMapActivity extends AppCompatActivity {
     private long lastUpdateTime;//上次更新周围的时间
     private String ipAddress;//服务器IP地址
-    private float mapZoomLevel=20;//初始的镜头范围
+    private float mapZoomLevel = 18;//初始的镜头范围
     private HashMap<Integer,Marker> markerMap = new HashMap<>();
     public int userDeviceID;
     final RadarTarget myPosition = new RadarTarget();//我的位置
@@ -229,9 +229,7 @@ public class LocationMapActivity extends AppCompatActivity {
         final Intent intent = getIntent();
         String mDeviceName = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_NAME);
         String mDeviceAddress = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS);
-        //测试代码
-//        mDeviceName = "哈哈";
-//        mDeviceAddress = "98:0D:2E:9E:5E:6F";
+        Log.i("Alex","收到的address是"+mDeviceAddress);
         if(mDeviceAddress == null){
             findViewById(R.id.bt_status).setVisibility(View.GONE);
             findViewById(R.id.bt_showBT).setVisibility(View.GONE);

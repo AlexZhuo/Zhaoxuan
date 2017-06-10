@@ -153,16 +153,20 @@ public class BluetoothTools implements View.OnClickListener{
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder service) {
             mBluetoothLeService = ((BluetoothLeService.LocalBinder) service).getService();
+            Log.i("Alex","service 建立");
             if (!mBluetoothLeService.initialize()) {
                 Log.e("Alex", "Unable to initialize Bluetooth");
             }
             // Automatically connects to the device upon successful start-up initialization.
-            mBluetoothLeService.connect(mDeviceAddress);
+           if( mBluetoothLeService.connect(mDeviceAddress)){
+               Log.i("Alex","感觉应该还不错");
+           }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
             mBluetoothLeService = null;
+            Log.i("Alex","service 断开");
         }
     };
 
@@ -315,6 +319,7 @@ public class BluetoothTools implements View.OnClickListener{
         @Override
         public void onReceive(Context context, Intent intent) {
             final String action = intent.getAction();
+            Log.i("Alex","收到了广播"+action);
             if (BluetoothLeService.ACTION_GATT_CONNECTED.equals(action)) {
 
             } else if (BluetoothLeService.ACTION_GATT_DISCONNECTED.equals(action)) {

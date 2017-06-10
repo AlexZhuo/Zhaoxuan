@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -92,7 +93,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_map:
                 Intent intent = new Intent(MainActivity.this, LocationMapActivity.class);
                 intent.putExtra("ip",ipAddress.getText().toString());
-                if(tv_btName.getText().toString().startsWith("藍牙")) {
+                if(tv_btName.getText().toString().startsWith("蓝牙")) {
                     intent.putExtra(BleSppActivity.EXTRAS_DEVICE_NAME, tv_btName.getText().toString().substring(5));
                     intent.putExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS, tv_btAddress.getText().toString().substring(5));
                 }
@@ -111,13 +112,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onActivityResult(requestCode, resultCode, data);
         switch (requestCode){
             case REQ_CODE_SCAN:
-                if(resultCode != RESULT_OK || getIntent() == null){
+                if(resultCode != RESULT_OK || data == null ||data.getExtras() == null){
                     Toast.makeText(this,"选择蓝牙设备失败，请重试",Toast.LENGTH_LONG).show();
                     break;
                 }
-                Intent intent = getIntent();
-                String deviceName = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_NAME);
-                String deviceAddress = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS);
+                String deviceName =data.getStringExtra(BleSppActivity.EXTRAS_DEVICE_NAME);
+                String deviceAddress =data.getStringExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS);
                 if(TextUtils.isEmpty(deviceName) || TextUtils.isEmpty(deviceAddress)){
                     Toast.makeText(this,"选择蓝牙设备失败222，请重试",Toast.LENGTH_LONG).show();
                     break;

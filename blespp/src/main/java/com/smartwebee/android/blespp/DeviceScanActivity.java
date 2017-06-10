@@ -190,7 +190,18 @@ public class DeviceScanActivity extends ListActivity {
 //        startActivity(intent);
         //在这里进入了下一个界面；
         setResult(RESULT_OK,intent);
+        onBackPressed();
     }
+
+//    @Override
+//    public void onBackPressed() {
+//        Log.i("Alex","反反复复付付付付付付付付付付付付付付付");
+//        final Intent intent = new Intent(this, BleSppActivity.class);
+//        intent.putExtra(BleSppActivity.EXTRAS_DEVICE_NAME, "测试");
+//        intent.putExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS, "98:0D:2E:9E:5E:6F");
+//        setResult(RESULT_OK,intent);
+//        super.onBackPressed();
+//    }
 
     private void scanLeDevice(final boolean enable) {
         if (enable) {
