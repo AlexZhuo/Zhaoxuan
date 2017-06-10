@@ -1,14 +1,22 @@
 package org.alex.zhaoxuan.Activities;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.alex.zhaoxuan.BluetoothTools;
 import org.alex.zhaoxuan.LocationUtils;
 import org.alex.zhaoxuan.RadarTarget;
 import org.alex.zhaoxuan.NetworkTools;
@@ -30,6 +38,7 @@ import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
 import com.lzy.okgo.callback.StringCallback;
+import com.smartwebee.android.blespp.BleSppActivity;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -43,7 +52,7 @@ import okhttp3.Response;
 public class LocationMapActivity extends AppCompatActivity {
     private long lastUpdateTime;//上次更新周围的时间
     private String ipAddress;//服务器IP地址
-    private float mapZoomLevel=15;
+    private float mapZoomLevel=20;//初始的镜头范围
     private HashMap<Integer,Marker> markerMap = new HashMap<>();
     public int userDeviceID;
     final RadarTarget myPosition = new RadarTarget();//我的位置
@@ -63,6 +72,53 @@ public class LocationMapActivity extends AppCompatActivity {
     public AMapLocationListener mLocationListener = null;
     //声明AMapLocationClientOption对象
     public AMapLocationClientOption mLocationOption = null;
+
+    //==========判断是否已经接通了蓝牙=================
+    public boolean mConnected = false;
+    BluetoothTools bluetoothTools;
+    View bt_status;
+    RadarTarget t;//即将用于上传的目标
+    Menu menu;
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        this.menu = menu;
+        getMenuInflater().inflate(com.smartwebee.android.blespp.R.menu.gatt_services, menu);
+        if (mConnected) {
+            menu.findItem(com.smartwebee.android.blespp.R.id.menu_connect).setVisible(false);
+            menu.findItem(com.smartwebee.android.blespp.R.id.menu_disconnect).setVisible(true);
+            menu.findItem(com.smartwebee.android.blespp.R.id.menu_refresh).setActionView(null);
+        } else {
+            menu.findItem(com.smartwebee.android.blespp.R.id.menu_connect).setVisible(true);
+            menu.findItem(com.smartwebee.android.blespp.R.id.menu_disconnect).setVisible(false);
+            menu.findItem(com.smartwebee.android.blespp.R.id.menu_refresh).setActionView(
+                    com.smartwebee.android.blespp.R.layout.actionbar_indeterminate_progress);
+        }
+        return true;
+    }
+
+    //这段代码应该被使用？？因为他有连接蓝牙的必要过程
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch(item.getItemId()) {
+            case R.id.menu_connect:
+                if(bluetoothTools != null)bluetoothTools.mBluetoothLeService.connect(bluetoothTools.mDeviceAddress);
+                if(findViewById(R.id.bt_showBT).getVisibility() == View.GONE){
+                    Toast.makeText(this,"没有配对",Toast.LENGTH_LONG).show();
+                }else {
+                    Toast.makeText(this,"正在连接雷达",Toast.LENGTH_LONG).show();
+                }
+                return true;
+            case R.id.menu_disconnect:
+                if(bluetoothTools != null)bluetoothTools.mBluetoothLeService.disconnect();
+                Toast.makeText(this,"断开雷达连接",Toast.LENGTH_LONG).show();
+                return true;
+            case android.R.id.home:
+                onBackPressed();
+                return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,7 +142,7 @@ public class LocationMapActivity extends AppCompatActivity {
         mUiSettings.setScaleControlsEnabled(true);//控制比例尺控件是否显示
         MyLocationStyle myLocationStyle = new MyLocationStyle();//初始化定位蓝点样式类myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE);//连续定位、且将视角移动到地图中心点，定位点依照设备方向旋转，并且会跟随设备移动。（1秒1次定位）如果不设置myLocationType，默认也会执行此种模式。
         myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);//连续定位、蓝点不会移动到地图中心点，定位点依照设备方向旋转，并且蓝点会跟随设备移动。
-        myLocationStyle.interval(3000); //设置连续定位模式下的定位间隔，只在连续定位模式下生效，单次定位模式下不会生效。单位为毫秒。
+        myLocationStyle.interval(2000); //设置连续定位模式下的定位间隔，只在连续定位模式下生效，单次定位模式下不会生效。单位为毫秒。
         aMap.setMyLocationStyle(myLocationStyle);//设置定位蓝点的Style
         aMap.getUiSettings().setMyLocationButtonEnabled(true);//设置默认定位按钮是否显示，非必需设置。
         aMap.setMyLocationEnabled(true);// 设置为true表示启动显示定位蓝点，false表示隐藏定位蓝点并不进行定位，默认是false。
@@ -96,7 +152,8 @@ public class LocationMapActivity extends AppCompatActivity {
             // 返回 true 则表示接口已响应事件，否则返回false
             @Override
             public boolean onMarkerClick(Marker marker) {
-                marker.showInfoWindow();
+                if(marker.isInfoWindowShown())marker.hideInfoWindow();
+                    else marker.showInfoWindow();
                 return true;
             }
         };
@@ -130,15 +187,16 @@ public class LocationMapActivity extends AppCompatActivity {
                         if(amapLocation.getLocationType() != 2 && !movedToCenter){
 //                            CameraPosition cameraPosition = aMap.getCameraPosition();
 //                            if(myPosition.latitude-cameraPosition.target.latitude < 1 && myPosition.longitude - cameraPosition.target.latitude < 1)return;
-                            CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()),15,0,0));
+                            CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()),mapZoomLevel,0,0));
                             aMap.moveCamera(mCameraUpdate);
                             movedToCenter = true;
                         }
                         //==================向服务器发送手机位置并接收目标的位置=================
-                       updatePhonePosition();
-//                        ArrayList<RadarTarget> targets = new ArrayList<>();
-//                        targets.add(myPosition);
-//                        updateRadarTarget(targets);
+//                        updatePhonePosition();
+                            ArrayList<RadarTarget> targets = new ArrayList<>();
+                            if(t != null)targets.add(t);
+                            updateRadarTarget(targets);
+                            Log.i("Alex","发送到服务器的目标是"+t.toString());
                     }else {
                         //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
                         Log.e("AmapError","location Error, ErrCode:"
@@ -157,7 +215,7 @@ public class LocationMapActivity extends AppCompatActivity {
         //设置定位模式为AMapLocationMode.Hight_Accuracy，高精度模式。
         mLocationOption.setLocationMode(AMapLocationClientOption.AMapLocationMode.Hight_Accuracy);
         //设置定位间隔,单位毫秒,默认为2000ms，最低1000ms。
-        mLocationOption.setInterval(3000);
+        mLocationOption.setInterval(2000);
         //设置是否强制刷新WIFI，默认为true，强制刷新。
         mLocationOption.setWifiScan(true);
         //设置是否允许模拟位置,默认为false，不允许模拟位置
@@ -167,8 +225,83 @@ public class LocationMapActivity extends AppCompatActivity {
         //给定位客户端对象设置定位参数
         mLocationClient.setLocationOption(mLocationOption);
 
+        //设置蓝牙相关
+        final Intent intent = getIntent();
+        String mDeviceName = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_NAME);
+        String mDeviceAddress = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS);
+        //测试代码
+//        mDeviceName = "哈哈";
+//        mDeviceAddress = "98:0D:2E:9E:5E:6F";
+        if(mDeviceAddress == null){
+            findViewById(R.id.bt_status).setVisibility(View.GONE);
+            findViewById(R.id.bt_showBT).setVisibility(View.GONE);
+            getSupportActionBar().hide();
+            return;
+        }
+        getSupportActionBar().setTitle(mDeviceName);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        bluetoothTools = new BluetoothTools(
+                this,
+                mDeviceAddress,
+                (TextView) findViewById(com.smartwebee.android.blespp.R.id.data_read_text),
+                (TextView) findViewById(com.smartwebee.android.blespp.R.id.byte_received_text),
+                (TextView) findViewById(com.smartwebee.android.blespp.R.id.data_received_format),
+                (EditText) findViewById(com.smartwebee.android.blespp.R.id.data_edit_box),
+                (TextView) findViewById(com.smartwebee.android.blespp.R.id.byte_send_text),
+                (TextView) findViewById(com.smartwebee.android.blespp.R.id.data_sended_format),
+                (TextView) findViewById(com.smartwebee.android.blespp.R.id.notify_speed_text),
+                (Button) findViewById(com.smartwebee.android.blespp.R.id.send_data_btn),
+                (Button) findViewById(com.smartwebee.android.blespp.R.id.clean_data_btn),
+                (Button) findViewById(com.smartwebee.android.blespp.R.id.clean_text_btn),
+                new BluetoothTools.BTReceiver() {
+                    @Override
+                    public void onReceive(String s) {
+                        if(TextUtils.isEmpty(s) || !s.startsWith("0XAA") || !s.endsWith("0XBB")){
+                            Toast.makeText(LocationMapActivity.this,"数据帧格式错误",Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        s = s.substring(4,s.length()-4);
+                        Log.i("Alex","掐头去尾后的值"+s);
+                        String [] results = s.split(",");
+                        if(results.length<3){
+                            Toast.makeText(LocationMapActivity.this,"数据帧数据错误",Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        try {
+                            double angle = new Double(results[0]);
+                            double distance = new Double(results[1]);
+                            float speed = new Float(results[2]);
 
+                            double[] latlng = LocationUtils.getGPSLocation(myPosition.latitude,myPosition.longitude,distance,angle);
+                            t = new RadarTarget();
+                            t.latitude = latlng[0];
+                            t.longitude = latlng[1];
+                            t.speed = speed/3.6f;
+                            t.targetId = 778899;
+                            t.targetName = "目标位置";
+                            t.time = System.currentTimeMillis();
+                            Log.i("Alex","雷达传来的目标是"+t);
 
+                        }catch (Exception e){
+                            Toast.makeText(LocationMapActivity.this,"数据帧乱码",Toast.LENGTH_LONG).show();
+                        }
+
+                    }
+                }
+        );
+        bt_status = findViewById(R.id.bt_status);
+        bt_status.setVisibility(View.GONE);
+        findViewById(R.id.bt_showBT).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(bt_status.getVisibility() == View.GONE){
+                    bt_status.setVisibility(View.VISIBLE);
+                    return;
+                }else {
+                    bt_status.setVisibility(View.GONE);
+                }
+            }
+        });
     }
 
     @Override
@@ -198,6 +331,7 @@ public class LocationMapActivity extends AppCompatActivity {
         //在activity执行onDestroy时执行mMapView.onDestroy()，销毁地图
         mapView.onDestroy();
         mLocationClient.onDestroy();//销毁定位客户端，同时销毁本地定位服务。
+        if(bluetoothTools != null)bluetoothTools.onDestroy();
     }
     @Override
     protected void onResume() {
@@ -206,12 +340,14 @@ public class LocationMapActivity extends AppCompatActivity {
         mapView.onResume();
         Log.i("Alex","是否恢复了定位"+mLocationClient.isStarted());
         mLocationClient.startLocation();
+        if(bluetoothTools != null)bluetoothTools.onResume();
     }
     @Override
     protected void onPause() {
         super.onPause();
         //在activity执行onPause时执行mMapView.onPause ()，暂停地图的绘制
         mapView.onPause();
+        if(bluetoothTools != null)bluetoothTools.onPause();
     }
     @Override
     protected void onSaveInstanceState(Bundle outState) {
@@ -293,7 +429,7 @@ public class LocationMapActivity extends AppCompatActivity {
      * 在收到雷达发来的目标信息后执行该方法，把雷达发现的目标发到服务器并进行显示
      */
     public void updateRadarTarget(final Collection<RadarTarget> targets){
-        NetworkTools.sendTargetLocationToServer(ipAddress,targets,LocationMapActivity.this,userDeviceID,
+        NetworkTools.sendTargetLocationToServer(ipAddress,targets,LocationMapActivity.this,2,//让所有客户端的target id都相同，那么就不会收到手机的位置了
                 new StringCallback() {
                     @Override
                     public void onSuccess(String s, Call call, Response response) {

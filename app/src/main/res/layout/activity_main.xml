@@ -13,26 +13,46 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="5dp"
-        android:textSize="22sp"
+        android:textSize="20sp"
 
-        android:text="服务器IP地址" />
+        android:text="服务器地址" />
     <EditText
         android:id="@+id/ipAddress"
-        android:textSize="20sp"
+        android:textSize="18sp"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginLeft="10dp"
+        android:layout_marginLeft="5dp"
         android:text="120.24.231.67:8080"
         android:layout_toRightOf="@id/ip"
         />
+
     <TextView
-        android:id="@+id/tv_status"
+        android:id="@+id/tv_btName"
         android:layout_below="@id/ip"
-        android:layout_marginTop="50dp"
-        android:text="请先测试服务器"
+        android:layout_marginTop="30dp"
+        android:text="设备名称：点击配对"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="30sp"
+        android:textSize="20sp"
+        />
+    <TextView
+        android:id="@+id/tv_btAddress"
+        android:layout_below="@id/tv_btName"
+        android:layout_marginTop="5dp"
+        android:text="设备地址：点击配对"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="20sp"
+        />
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_below="@id/tv_btAddress"
+        android:layout_marginTop="50dp"
+        android:text="请先测试服务器,并配对蓝牙"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="25sp"
         />
     <Button
         android:id="@+id/btn_test"

@@ -11,7 +11,6 @@ import java.util.Collection;
  * Created by Administrator on 2017/5/19.
  */
 public class LocationUtils {
-    private static double EARTH_RADIUS = 6378.137;
 
     private static double rad(double d) {
         return d * Math.PI / 180.0;
@@ -35,7 +34,6 @@ public class LocationUtils {
                 * Math.pow(Math.sin(b / 2), 2)));
         s = s * EARTH_RADIUS;
         s = Math.round(s * 10000d) / 10000d;
-        s = s*1000;
         return s;
     }
 
@@ -99,6 +97,42 @@ public class LocationUtils {
         LatLng northeastLatLng = new LatLng(myPosition.latitude + maxLat, myPosition.longitude + maxlng);
         Log.i("AlexZoom", "经纬度限制：" + southwestLatLng + ",," + northeastLatLng);
         return aMap.getZoomToSpanLevel(southwestLatLng,northeastLatLng)-1;
+    }
+
+
+    private final static double EARTH_RADIUS = 6378138.0;
+    private final static double PI = 3.14159265;
+    private final static double Rc = 6378137;  // 赤道半径
+    private final static double Rj = 6356725;  // 极半径
+
+    /**
+     * @param distance Unit:Km
+     * @param angle    i.g. 45/135/225/315
+     * @return result[0] latitude<br>result[1] longitude
+     */
+    public static double[] getGPSLocation(double latitude, double longitude, double distance, double angle) {
+        double[] result = {0, 0};
+
+        double m_Latitude;
+        double m_RadLo, m_RadLa;
+        double Ec;
+        double Ed;
+
+        m_Latitude = latitude;
+        m_RadLo = longitude * PI / 180.0;
+        m_RadLa = latitude * PI / 180.0;
+        Ec = Rj + (Rc - Rj) * (90.0 - m_Latitude) / 90.0;
+        Ed = Ec * Math.cos(m_RadLa);
+
+        double dx = distance * Math.sin(angle * PI / 180.0);
+        double dy = distance * Math.cos(angle * PI / 180.0);
+
+        double BJD = (dx / Ed + m_RadLo) * 180.0 / PI;
+        double BWD = (dy / Ec + m_RadLa) * 180.0 / PI;
+
+        result[0] = BWD;
+        result[1] = BJD;
+        return result;
     }
 
 }
