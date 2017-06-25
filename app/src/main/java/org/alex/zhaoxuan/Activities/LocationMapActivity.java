@@ -2,7 +2,11 @@ package org.alex.zhaoxuan.Activities;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.BitmapFactory;
+import android.location.Location;
 import android.os.Build;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.telephony.TelephonyManager;
@@ -30,8 +34,10 @@ import com.amap.api.location.AMapLocationListener;
 import com.amap.api.maps.AMap;
 import com.amap.api.maps.CameraUpdate;
 import com.amap.api.maps.CameraUpdateFactory;
+import com.amap.api.maps.LocationSource;
 import com.amap.api.maps.MapView;
 import com.amap.api.maps.UiSettings;
+import com.amap.api.maps.model.BitmapDescriptorFactory;
 import com.amap.api.maps.model.CameraPosition;
 import com.amap.api.maps.model.LatLng;
 import com.amap.api.maps.model.Marker;
@@ -56,12 +62,17 @@ public class LocationMapActivity extends AppCompatActivity {
     private HashMap<Integer,Marker> markerMap = new HashMap<>();
     public int userDeviceID;
     final RadarTarget myPosition = new RadarTarget();//我的位置
+    private boolean indoorMode;
     TextView myLatitude;
     TextView myLongitude;
     TextView mySpeed;
     TextView myAccuracy;
     boolean movedToCenter = false;//判断是否已经从北京
-    //===============①下是地图SDK================
+    private String Buffer = "";
+    private int index = 0;
+    private static String FrameHead = "0XAA";
+    private static String FrameTail = "0XBB";
+    //===============以下是地图SDK================
     AMap aMap;
     MapView mapView;
     private UiSettings mUiSettings;//定义一个UiSettings对象
@@ -129,6 +140,15 @@ public class LocationMapActivity extends AppCompatActivity {
         mySpeed = (TextView)findViewById(R.id.mySpeed);
         myAccuracy = (TextView)findViewById(R.id.myAccuracy);
         ipAddress = getIntent().getStringExtra("ip");
+        String indoor_lat = getIntent().getStringExtra("indoor_lat");
+        String indoor_lng = getIntent().getStringExtra("indoor_lng");
+        if(!TextUtils.isEmpty(indoor_lat) && !TextUtils.isEmpty(indoor_lng)){
+            //开启室内模式
+            indoorMode = true;
+            myPosition.accuracy = 1.0f;
+            myPosition.latitude = new Double(indoor_lat);
+            myPosition.longitude = new Double(indoor_lng);
+        }
         Log.i("Alex","传过来的IP"+ipAddress);
         //======================以下是地图SDK功能====================
         mapView = (MapView) findViewById(R.id.map);
@@ -141,7 +161,64 @@ public class LocationMapActivity extends AppCompatActivity {
         mUiSettings.setCompassEnabled(true);
         mUiSettings.setScaleControlsEnabled(true);//控制比例尺控件是否显示
         MyLocationStyle myLocationStyle = new MyLocationStyle();//初始化定位蓝点样式类myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE);//连续定位、且将视角移动到地图中心点，定位点依照设备方向旋转，并且会跟随设备移动。（1秒1次定位）如果不设置myLocationType，默认也会执行此种模式。
-        myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);//连续定位、蓝点不会移动到地图中心点，定位点依照设备方向旋转，并且蓝点会跟随设备移动。
+        if(indoorMode){
+            myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_SHOW);//连续定位、蓝点不会移动到地图中心点，并且蓝点会跟随设备移动。
+            myLocationStyle.showMyLocation(false);//室内模式不显示定位蓝点
+            Log.i("Alex","准备移动camera"+myPosition.latitude+"   "+myPosition.longitude);
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(myPosition.latitude,myPosition.longitude),mapZoomLevel,0,0));
+                    aMap.moveCamera(mCameraUpdate);
+                }
+            },2000);
+            MarkerOptions markerOption = new MarkerOptions();
+            markerOption.position(new LatLng(myPosition.latitude,myPosition.longitude));
+            markerOption.title("雷达位置").snippet("经度："+myPosition.longitude+"\n纬度："+myPosition.latitude);
+            markerOption.draggable(true);//设置Marker可拖动
+            markerOption.icon(BitmapDescriptorFactory.fromBitmap(BitmapFactory.decodeResource(getResources(),R.drawable.circle)));
+            // 将Marker设置为贴地显示，可以双指下拉地图查看效果
+            markerOption.setFlat(true);//设置marker平贴地图效果
+            aMap.addMarker(markerOption);
+            aMap.setOnMarkerDragListener(new AMap.OnMarkerDragListener() {
+                @Override
+                public void onMarkerDragStart(Marker marker) {
+
+                }
+
+                @Override
+                public void onMarkerDrag(Marker marker) {
+                    if("雷达位置".equals(marker.getTitle())){
+                        myPosition.latitude = marker.getPosition().latitude;
+                        myPosition.longitude = marker.getPosition().longitude;
+                        marker.setSnippet("经度："+myPosition.longitude+"\n纬度："+myPosition.latitude);
+                        myLatitude.setText("经度："+myPosition.longitude);
+                        myLongitude.setText("纬度："+myPosition.latitude);
+                    }
+                }
+
+                @Override
+                public void onMarkerDragEnd(Marker marker) {
+                    if("雷达位置".equals(marker.getTitle())){
+                        SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
+                        SharedPreferences.Editor editor = sp.edit();
+                        editor.putString("latitude", myPosition.latitude+"");
+                        editor.putString("longitude", myPosition.longitude+"");
+                        editor.commit();
+                    }
+                }
+            });
+            aMap.setOnMyLocationChangeListener(new AMap.OnMyLocationChangeListener() {
+                @Override
+                public void onMyLocationChange(Location location) {
+                    Log.i("Alex","我擦我擦"+location.getLatitude());
+                    location.setLatitude(myPosition.latitude);
+                    location.setLongitude(myPosition.longitude);
+                }
+            });
+        }else {
+            myLocationStyle.myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER);//连续定位、蓝点不会移动到地图中心点，定位点依照设备方向旋转，并且蓝点会跟随设备移动。
+        }
         myLocationStyle.interval(2000); //设置连续定位模式下的定位间隔，只在连续定位模式下生效，单次定位模式下不会生效。单位为毫秒。
         aMap.setMyLocationStyle(myLocationStyle);//设置定位蓝点的Style
         aMap.getUiSettings().setMyLocationButtonEnabled(true);//设置默认定位按钮是否显示，非必需设置。
@@ -169,9 +246,11 @@ public class LocationMapActivity extends AppCompatActivity {
                     if (amapLocation.getErrorCode() == 0) {
                         //可在其中解析amapLocation获取相应内容。
                         myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
-                        myPosition.latitude = amapLocation.getLatitude();//获取纬度
-                        myPosition.longitude = amapLocation.getLongitude();//获取经度
-                        myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
+                        if(!indoorMode) {//非室内模式使用GPS信息
+                            myPosition.latitude = amapLocation.getLatitude();//获取纬度
+                            myPosition.longitude = amapLocation.getLongitude();//获取经度
+                            myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
+                        }
                         myPosition.speed = amapLocation.getSpeed();
                         //获取定位时间
                         myPosition.time = amapLocation.getTime();
@@ -254,15 +333,35 @@ public class LocationMapActivity extends AppCompatActivity {
                 new BluetoothTools.BTReceiver() {
                     @Override
                     public void onReceive(String s) {
-                        if(TextUtils.isEmpty(s) || !s.startsWith("0XAA") || !s.endsWith("0XBB")){
-                            Toast.makeText(LocationMapActivity.this,"数据帧格式错误",Toast.LENGTH_LONG).show();
-                            return;
+                        Buffer += s;
+                        String standardFrame = "";
+                        try {
+                            if (Buffer.indexOf(FrameTail) == -1) {
+                                return;
+                            } else if (Buffer.indexOf(FrameHead) > Buffer.indexOf(FrameTail) || Buffer.indexOf(FrameTail) - Buffer.indexOf(FrameHead) > 28) {
+                                index = Buffer.indexOf(FrameHead) + 4;
+                                if (index < Buffer.length() && index != -1) {
+                                    Buffer = Buffer.substring(index);
+                                }
+                            } else {
+                                standardFrame = Buffer.substring(Buffer.indexOf(FrameHead), Buffer.indexOf(FrameTail) + 4);
+                                Buffer = Buffer.substring(Buffer.indexOf(FrameTail) + 4);
+                            }
+                            if (TextUtils.isEmpty(standardFrame) || !standardFrame.startsWith(FrameHead) || !standardFrame.endsWith(FrameTail)) {
+                                //Toast.makeText(LocationMapActivity.this, "数据帧格式错误", Toast.LENGTH_LONG).show();
+                                standardFrame = null;
+                                return;
+                            }
+                            Log.i("Alex", Buffer);
+                            Log.i("Alex", "掐头去尾后的值" + standardFrame);
+                            standardFrame = standardFrame.substring(4, 24);
+                        } catch (Exception e) {
+                            Log.i("Error", e.getMessage());
                         }
-                        s = s.substring(4,s.length()-4);
-                        Log.i("Alex","掐头去尾后的值"+s);
-                        String [] results = s.split(",");
-                        if(results.length<3){
-                            Toast.makeText(LocationMapActivity.this,"数据帧数据错误",Toast.LENGTH_LONG).show();
+                        String[] results = standardFrame.split(",");
+
+                        if (results.length < 3) {
+                            Toast.makeText(LocationMapActivity.this, "数据帧数据错误", Toast.LENGTH_LONG).show();
                             return;
                         }
                         try {
@@ -270,23 +369,21 @@ public class LocationMapActivity extends AppCompatActivity {
                             double distance = new Double(results[1]);
                             float speed = new Float(results[2]);
 
-                            double[] latlng = LocationUtils.getGPSLocation(myPosition.latitude,myPosition.longitude,distance,angle);
+                            double[] latlng = LocationUtils.getGPSLocation(myPosition.latitude, myPosition.longitude, distance, angle);
                             t = new RadarTarget();
                             t.latitude = latlng[0];
                             t.longitude = latlng[1];
-                            t.speed = speed/3.6f;
+                            t.speed = speed / 3.6f;
                             t.targetId = 778899;
                             t.targetName = "目标位置";
                             t.time = System.currentTimeMillis();
-                            Log.i("Alex","雷达传来的目标是"+t);
+                            Log.i("Alex", "雷达传来的目标是" + t);
 
-                        }catch (Exception e){
-                            Toast.makeText(LocationMapActivity.this,"数据帧乱码",Toast.LENGTH_LONG).show();
+                        } catch (Exception e) {
+                            Toast.makeText(LocationMapActivity.this, "数据帧乱码", Toast.LENGTH_LONG).show();
                         }
-
-                    }
-                }
-        );
+                     }
+                });
         bt_status = findViewById(R.id.bt_status);
         bt_status.setVisibility(View.GONE);
         findViewById(R.id.bt_showBT).setOnClickListener(new View.OnClickListener() {
@@ -298,6 +395,7 @@ public class LocationMapActivity extends AppCompatActivity {
                 }else {
                     bt_status.setVisibility(View.GONE);
                 }
+
             }
         });
     }

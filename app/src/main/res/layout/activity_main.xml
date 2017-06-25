@@ -24,6 +24,7 @@
         android:layout_marginLeft="5dp"
         android:text="120.24.231.67:8080"
         android:layout_toRightOf="@id/ip"
+        android:layout_alignBaseline="@id/ip"
         />
 
     <TextView
@@ -44,16 +45,65 @@
         android:layout_height="wrap_content"
         android:textSize="20sp"
         />
+    <TextView
+        android:id="@+id/tv_indoor"
+        android:text="室内模式："
+        android:layout_below="@id/tv_btAddress"
+        android:textSize="20sp"
+        android:layout_marginTop="15dp"
 
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <ToggleButton
+        android:id="@+id/tb_indoor"
+        android:layout_alignBaseline="@id/tv_indoor"
+        android:layout_toRightOf="@id/tv_indoor"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/tv_latitude"
+        android:text="纬度："
+        android:layout_below="@id/tv_indoor"
+        android:textSize="20sp"
+        android:visibility="gone"
+        android:layout_marginTop="15dp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <EditText
+        android:id="@+id/et_latitude"
+        android:text="                  "
+        android:layout_toRightOf="@id/tv_latitude"
+        android:layout_alignBaseline="@id/tv_latitude"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <TextView
+        android:id="@+id/tv_longitude"
+        android:text="经度："
+        android:layout_below="@id/tv_latitude"
+        android:textSize="20sp"
+        android:layout_marginTop="15dp"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <EditText
+        android:id="@+id/et_longitude"
+        android:text="                  "
+        android:visibility="gone"
+        android:layout_toRightOf="@id/tv_longitude"
+        android:layout_alignBaseline="@id/tv_longitude"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
     <TextView
         android:id="@+id/tv_status"
-        android:layout_below="@id/tv_btAddress"
-        android:layout_marginTop="50dp"
+        android:layout_below="@id/tv_longitude"
+        android:layout_marginTop="70dp"
         android:text="请先测试服务器,并配对蓝牙"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="25sp"
         />
+
     <Button
         android:id="@+id/btn_test"
         android:layout_width="150dp"

@@ -54,6 +54,7 @@ public class BluetoothTools implements View.OnClickListener{
     private TextView mSendBytes;
     private TextView mDataSendFormat;
     private TextView mNotify_speed_text;
+    private String mFrame;
     Button mSendBtn;
     Button mCleanBtn;
     Button mCleanTextBtn;
@@ -251,21 +252,23 @@ public class BluetoothTools implements View.OnClickListener{
         if (mDataRecvFormat.getText().equals("Ascii")) {
             String s =asciiToString(buf);
             mData.append(s);
+            mFrame = s;
             System.out.print("这就是数据");
         } else {
             String s = bytesToString(buf);
             mData.append(s);
+            mFrame = s;
         }
         /////////////////////////////////////////////////////////////////////////
         ///////////////////////////////////////////////////////////////////////////
-        mDataRecvText.setText(mData.toString()+"这是一个测试");//mdata是所收到的数据
-        mRecvBytes.setText(recvBytes + " "+"这是一个测试");
+        mDataRecvText.setText(mData.toString());//mdata是所收到的数据
+        mRecvBytes.setText(recvBytes+"");
         /////////////////////////////////////////////////////////////////////////
         /*
         主要工作：把mdata写到一个新的类中并打包。调用这个数据；
          */
         ///////////////////////////////////////////////////////////////////////////
-        r.onReceive(mData.toString());
+        r.onReceive(mFrame);
     }
 
     public interface BTReceiver{
