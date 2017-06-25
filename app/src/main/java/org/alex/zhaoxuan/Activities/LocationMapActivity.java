@@ -534,6 +534,7 @@ public class LocationMapActivity extends AppCompatActivity {
                         ReciveMessage msg = JSON.parseObject(s,ReciveMessage.class);
                         if(msg == null)return;
                         if(msg.timestamp <= lastUpdateTime)return;
+                        boolean hasNewTarget = false;//判断有没有新的坐标，需要放大地图
                         lastUpdateTime = msg.timestamp;
                         HashMap<Integer,Marker> newMap = new HashMap<Integer, Marker>();
                         for(RadarTarget p:msg.locationList){
@@ -548,6 +549,7 @@ public class LocationMapActivity extends AppCompatActivity {
                                 continue;
                             }
                             //新的坐标
+                            hasNewTarget = true;
                             //=============设置marker============
                             LatLng latLng = new LatLng(p.latitude,p.longitude);
                             Marker newMarker = aMap.addMarker(new MarkerOptions().position(latLng).title(p.targetName).snippet(NetworkTools.genSnippet(p)));
@@ -574,7 +576,7 @@ public class LocationMapActivity extends AppCompatActivity {
                             float zoomLevel = aMap.getZoomToSpanLevel(southwestLatLng, northeastLatLng)-1;
                             Log.i("Alex","zoom level 是"+zoomLevel);
                             mapZoomLevel = aMap.getCameraPosition().zoom;
-                            if (zoomLevel < mapZoomLevel) {//需要扩大视野
+                            if (zoomLevel < mapZoomLevel && hasNewTarget) {//需要扩大视野
                                 Log.i("Alex", "修改zoom Level：" + zoomLevel);
 //                                                aMap.moveCamera(CameraUpdateFactory.zoomTo(zoomLevel));
                                 //中心点坐标、希望调整到的缩放级别、俯仰角0°~45°（垂直与地图时为0）、偏航角 0~360° (正北方为0)
