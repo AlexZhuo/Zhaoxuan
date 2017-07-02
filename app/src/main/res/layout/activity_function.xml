@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="org.alex.zhaoxuan.Activities.FunctionActivity">
+    <com.amap.api.maps.MapView
+        android:id="@+id/map"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </com.amap.api.maps.MapView>
+
+    <FrameLayout
+        android:id="@+id/fragmentsHolder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </FrameLayout>
+    <include
+        android:id="@+id/bt_status"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginRight="20dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="20dp"
+        android:layout_marginBottom="30dp"
+        layout="@layout/ble_spp"
+        android:background="#000000"
+
+        />
+    <Button
+        android:id="@+id/bt_showBT"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp"
+        android:layout_centerHorizontal="true"
+        android:text="显示蓝牙信息"
+        android:textSize="15sp"
+        />
+
+    <Button
+        android:id="@+id/bt_video"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:text="视频"
+        android:layout_alignParentRight="true"
+        />
+    <Button
+        android:id="@+id/bt_map"
+        android:layout_width="60dp"
+        android:layout_height="wrap_content"
+        android:text="地图"
+        android:layout_toLeftOf="@id/bt_video"
+        />
+</RelativeLayout>

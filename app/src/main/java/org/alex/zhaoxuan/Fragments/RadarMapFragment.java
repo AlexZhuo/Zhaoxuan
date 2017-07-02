@@ -1,30 +1,22 @@
-package org.alex.zhaoxuan.Activities;
+package org.alex.zhaoxuan.Fragments;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Build;
-import android.os.Handler;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.support.v4.app.Fragment;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
+import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import org.alex.zhaoxuan.BluetoothTools;
-import org.alex.zhaoxuan.LocationUtils;
-import org.alex.zhaoxuan.RadarTarget;
-import org.alex.zhaoxuan.NetworkTools;
-import org.alex.zhaoxuan.R;
 
 import com.alibaba.fastjson.JSON;
 import com.amap.api.location.AMapLocation;
@@ -43,7 +35,13 @@ import com.amap.api.maps.model.Marker;
 import com.amap.api.maps.model.MarkerOptions;
 import com.amap.api.maps.model.MyLocationStyle;
 import com.lzy.okgo.callback.StringCallback;
-import com.smartwebee.android.blespp.BleSppActivity;
+
+
+import org.alex.zhaoxuan.Activities.FunctionActivity;
+import org.alex.zhaoxuan.LocationUtils;
+import org.alex.zhaoxuan.NetworkTools;
+import org.alex.zhaoxuan.R;
+import org.alex.zhaoxuan.RadarTarget;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -54,9 +52,31 @@ import okhttp3.Call;
 import okhttp3.Response;
 
 
-public class LocationMapActivity extends AppCompatActivity {
-    private long lastUpdateTime;//上次更新周围的时间
+/**
+ * A simple {@link Fragment} subclass.
+ * Activities that contain this fragment must implement the
+ * {@link RadarMapFragment.OnFragmentInteractionListener} interface
+ * to handle interaction events.
+ * Use the {@link RadarMapFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class RadarMapFragment extends Fragment {
+    // TODO: Rename parameter arguments, choose names that match
+    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
+    private static final String ARG_PARAM1 = "param1";
+    private static final String ARG_PARAM2 = "param2";
+
+    // TODO: Rename and change types of parameters
+    private String mParam1;
+    private String mParam2;
+    String indoor_lat;
+    String indoor_lng;
     private String ipAddress;//服务器IP地址
+
+    private OnFragmentInteractionListener mListener;
+
+    private long lastUpdateTime;//上次更新周围的时间
+
     private float mapZoomLevel = 18;//初始的镜头范围
     private HashMap<Integer,Marker> markerMap = new HashMap<>();
     public int userDeviceID;
@@ -67,10 +87,7 @@ public class LocationMapActivity extends AppCompatActivity {
     TextView mySpeed;
     TextView myAccuracy;
     boolean movedToCenter = false;//判断是否已经从北京
-    private String Buffer = "";
-    private int index = 0;
-    private static String FrameHead = "0XAA";
-    private static String FrameTail = "0XBB";
+
     //===============以下是地图SDK================
     AMap aMap;
     MapView mapView;
@@ -83,64 +100,55 @@ public class LocationMapActivity extends AppCompatActivity {
     //声明AMapLocationClientOption对象
     public AMapLocationClientOption mLocationOption = null;
 
-    //==========判断是否已经接通了蓝牙=================
-    public boolean mConnected = false;
-    BluetoothTools bluetoothTools;
-    View bt_status;
-    RadarTarget t;//即将用于上传的目标
-    Menu menu;
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        this.menu = menu;
-        getMenuInflater().inflate(com.smartwebee.android.blespp.R.menu.gatt_services, menu);
-        if (mConnected) {
-            menu.findItem(com.smartwebee.android.blespp.R.id.menu_connect).setVisible(false);
-            menu.findItem(com.smartwebee.android.blespp.R.id.menu_disconnect).setVisible(true);
-            menu.findItem(com.smartwebee.android.blespp.R.id.menu_refresh).setActionView(null);
-        } else {
-            menu.findItem(com.smartwebee.android.blespp.R.id.menu_connect).setVisible(true);
-            menu.findItem(com.smartwebee.android.blespp.R.id.menu_disconnect).setVisible(false);
-            menu.findItem(com.smartwebee.android.blespp.R.id.menu_refresh).setActionView(
-                    com.smartwebee.android.blespp.R.layout.actionbar_indeterminate_progress);
-        }
-        return true;
+    public RadarMapFragment() {
+        // Required empty public constructor
     }
 
-    //这段代码应该被使用？？因为他有连接蓝牙的必要过程
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()) {
-            case R.id.menu_connect:
-                if(bluetoothTools != null)bluetoothTools.mBluetoothLeService.connect(bluetoothTools.mDeviceAddress);
-                if(findViewById(R.id.bt_showBT).getVisibility() == View.GONE){
-                    Toast.makeText(this,"没有配对",Toast.LENGTH_LONG).show();
-                }else {
-                    Toast.makeText(this,"正在连接雷达",Toast.LENGTH_LONG).show();
-                }
-                return true;
-            case R.id.menu_disconnect:
-                if(bluetoothTools != null)bluetoothTools.mBluetoothLeService.disconnect();
-                Toast.makeText(this,"断开雷达连接",Toast.LENGTH_LONG).show();
-                return true;
-            case android.R.id.home:
-                onBackPressed();
-                return true;
-        }
-        return super.onOptionsItemSelected(item);
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param param1 Parameter 1.
+     * @param param2 Parameter 2.
+     * @return A new instance of fragment RadarMapFragment.
+     */
+    // TODO: Rename and change types and number of parameters
+    public static RadarMapFragment newInstance(String param1, String param2, String ip,String indoor_lat,String indoor_lng) {
+        RadarMapFragment fragment = new RadarMapFragment();
+        Bundle args = new Bundle();
+        args.putString(ARG_PARAM1, param1);
+        args.putString(ARG_PARAM2, param2);
+        args.putString("indoor_lat",indoor_lat);
+        args.putString("indoor_lng",indoor_lng);
+        args.putString("ip",ip);
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_location_map);
-        myLatitude = (TextView)findViewById(R.id.myLatitude);
-        myLongitude = (TextView)findViewById(R.id.myLongitude);
-        mySpeed = (TextView)findViewById(R.id.mySpeed);
-        myAccuracy = (TextView)findViewById(R.id.myAccuracy);
-        ipAddress = getIntent().getStringExtra("ip");
-        String indoor_lat = getIntent().getStringExtra("indoor_lat");
-        String indoor_lng = getIntent().getStringExtra("indoor_lng");
+        if (getArguments() != null) {
+            mParam1 = getArguments().getString(ARG_PARAM1);
+            mParam2 = getArguments().getString(ARG_PARAM2);
+            ipAddress = getArguments().getString("ip");
+            Log.i("Alex","传过来的IP"+ipAddress);
+            indoor_lat = getArguments().getString("indoor_lat");
+            indoor_lng = getArguments().getString("indoor_lng");
+        }
+
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        View view = inflater.inflate(R.layout.fragment_radar_map, container, false);
+        myLatitude = (TextView)view.findViewById(R.id.myLatitude);
+        myLongitude = (TextView)view.findViewById(R.id.myLongitude);
+        mySpeed = (TextView)view.findViewById(R.id.mySpeed);
+        myAccuracy = (TextView)view.findViewById(R.id.myAccuracy);
+
         if(!TextUtils.isEmpty(indoor_lat) && !TextUtils.isEmpty(indoor_lng)){
             //开启室内模式
             indoorMode = true;
@@ -150,7 +158,7 @@ public class LocationMapActivity extends AppCompatActivity {
         }
         Log.i("Alex","传过来的IP"+ipAddress);
         //======================以下是地图SDK功能====================
-        mapView = (MapView) findViewById(R.id.map);
+        mapView = (MapView) view.findViewById(R.id.map);
         mapView.onCreate(savedInstanceState);// 此方法必须重写
         aMap = mapView.getMap();
         mUiSettings = aMap.getUiSettings();//实例化UiSettings类对象
@@ -199,7 +207,7 @@ public class LocationMapActivity extends AppCompatActivity {
                 @Override
                 public void onMarkerDragEnd(Marker marker) {
                     if("雷达位置".equals(marker.getTitle())){
-                        SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
+                        SharedPreferences sp = getActivity().getSharedPreferences("config", getActivity().MODE_PRIVATE);
                         SharedPreferences.Editor editor = sp.edit();
                         editor.putString("latitude", myPosition.latitude+"");
                         editor.putString("longitude", myPosition.longitude+"");
@@ -229,7 +237,7 @@ public class LocationMapActivity extends AppCompatActivity {
             @Override
             public boolean onMarkerClick(Marker marker) {
                 if(marker.isInfoWindowShown())marker.hideInfoWindow();
-                    else marker.showInfoWindow();
+                else marker.showInfoWindow();
                 return true;
             }
         };
@@ -237,51 +245,53 @@ public class LocationMapActivity extends AppCompatActivity {
         aMap.setOnMarkerClickListener(markerClickListener);
         //==========================以下是定位SDK功能=========================
         //初始化定位
-        mLocationClient = new AMapLocationClient(getApplicationContext());
+        mLocationClient = new AMapLocationClient(getActivity().getApplicationContext());
         mLocationListener = new AMapLocationListener(){
             @Override
             public void onLocationChanged(AMapLocation amapLocation) {
-                    if (amapLocation == null)return;
-                    if (amapLocation.getErrorCode() == 0) {
-                        //可在其中解析amapLocation获取相应内容。
-                        myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
-                        if(!indoorMode) {//非室内模式使用GPS信息
-                            myPosition.latitude = amapLocation.getLatitude();//获取纬度
-                            myPosition.longitude = amapLocation.getLongitude();//获取经度
-                            myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
-                        }
-                        myPosition.speed = amapLocation.getSpeed();
-                        //获取定位时间
-                        myPosition.time = amapLocation.getTime();
-                        myPosition.targetName = Build.BRAND+" "+Build.MODEL;
-                        myPosition.city = amapLocation.getCity();
-                        myPosition.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
-                        myPosition.targetId = userDeviceID;
-                        myLatitude.setText("经度："+myPosition.longitude);
-                        myLongitude.setText("纬度："+myPosition.latitude);
-                        mySpeed.setText("速度："+new DecimalFormat("0.000").format(myPosition.speed*3.6)+" km/h");
-                        myAccuracy.setText("精确度："+myPosition.accuracy+"m");
-                        //参数依次是：视角调整区域的中心点坐标、希望调整到的缩放级别、俯仰角0°~45°（垂直与地图时为0）、偏航角 0~360° (正北方为0)
-                        if(amapLocation.getLocationType() != 2 && !movedToCenter){
+                if (amapLocation == null)return;
+                if (amapLocation.getErrorCode() == 0) {
+                    //可在其中解析amapLocation获取相应内容。
+                    myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
+                    if(!indoorMode) {//非室内模式使用GPS信息
+                        myPosition.latitude = amapLocation.getLatitude();//获取纬度
+                        myPosition.longitude = amapLocation.getLongitude();//获取经度
+                        myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
+                    }
+                    myPosition.speed = amapLocation.getSpeed();
+                    //获取定位时间
+                    myPosition.time = amapLocation.getTime();
+                    myPosition.targetName = Build.BRAND+" "+Build.MODEL;
+                    myPosition.city = amapLocation.getCity();
+                    myPosition.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
+                    myPosition.targetId = userDeviceID;
+                    ((FunctionActivity)getActivity()).myPosition = myPosition;
+                    myLatitude.setText("经度："+myPosition.longitude);
+                    myLongitude.setText("纬度："+myPosition.latitude);
+                    mySpeed.setText("速度："+new DecimalFormat("0.000").format(myPosition.speed*3.6)+" km/h");
+                    myAccuracy.setText("精确度："+myPosition.accuracy+"m");
+                    //参数依次是：视角调整区域的中心点坐标、希望调整到的缩放级别、俯仰角0°~45°（垂直与地图时为0）、偏航角 0~360° (正北方为0)
+                    if(amapLocation.getLocationType() != 2 && !movedToCenter){
 //                            CameraPosition cameraPosition = aMap.getCameraPosition();
 //                            if(myPosition.latitude-cameraPosition.target.latitude < 1 && myPosition.longitude - cameraPosition.target.latitude < 1)return;
-                            CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()),mapZoomLevel,0,0));
-                            aMap.moveCamera(mCameraUpdate);
-                            movedToCenter = true;
-                        }
-                        //==================向服务器发送手机位置并接收目标的位置=================
-//                        updatePhonePosition();
-                            ArrayList<RadarTarget> targets = new ArrayList<>();
-                            if(t != null)targets.add(t);
-                            updateRadarTarget(targets);
-                            Log.i("Alex","发送到服务器的目标是"+t.toString());
-                    }else {
-                        //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
-                        Log.e("AmapError","location Error, ErrCode:"
-                                + amapLocation.getErrorCode() + ", errInfo:"
-                                + amapLocation.getErrorInfo());
-                        Toast.makeText(LocationMapActivity.this,"手机定位失败",Toast.LENGTH_LONG).show();
+                        CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(amapLocation.getLatitude(),amapLocation.getLongitude()),mapZoomLevel,0,0));
+                        aMap.moveCamera(mCameraUpdate);
+                        movedToCenter = true;
                     }
+                    //==================向服务器发送手机位置并接收目标的位置=================
+//                        updatePhonePosition();
+                    ArrayList<RadarTarget> targets = new ArrayList<>();
+                    RadarTarget t = ((FunctionActivity)getActivity()).t;
+                    if(t != null)targets.add(t);
+                    updateRadarTarget(targets);
+                    Log.i("Alex","发送到服务器的目标是"+t.toString());
+                }else {
+                    //定位失败时，可通过ErrCode（错误码）信息来确定失败的原因，errInfo是错误信息，详见错误码表。
+                    Log.e("AmapError","location Error, ErrCode:"
+                            + amapLocation.getErrorCode() + ", errInfo:"
+                            + amapLocation.getErrorInfo());
+                    Toast.makeText(getActivity(),"手机定位失败",Toast.LENGTH_LONG).show();
+                }
 
             }
         };
@@ -303,110 +313,17 @@ public class LocationMapActivity extends AppCompatActivity {
         //给定位客户端对象设置定位参数
         mLocationClient.setLocationOption(mLocationOption);
 
-        //设置蓝牙相关
-        final Intent intent = getIntent();
-        String mDeviceName = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_NAME);
-        String mDeviceAddress = intent.getStringExtra(BleSppActivity.EXTRAS_DEVICE_ADDRESS);
-        Log.i("Alex","收到的address是"+mDeviceAddress);
-        if(mDeviceAddress == null){
-            findViewById(R.id.bt_status).setVisibility(View.GONE);
-            findViewById(R.id.bt_showBT).setVisibility(View.GONE);
-            getSupportActionBar().hide();
-            return;
-        }
-        getSupportActionBar().setTitle(mDeviceName);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        bluetoothTools = new BluetoothTools(
-                this,
-                mDeviceAddress,
-                (TextView) findViewById(com.smartwebee.android.blespp.R.id.data_read_text),
-                (TextView) findViewById(com.smartwebee.android.blespp.R.id.byte_received_text),
-                (TextView) findViewById(com.smartwebee.android.blespp.R.id.data_received_format),
-                (EditText) findViewById(com.smartwebee.android.blespp.R.id.data_edit_box),
-                (TextView) findViewById(com.smartwebee.android.blespp.R.id.byte_send_text),
-                (TextView) findViewById(com.smartwebee.android.blespp.R.id.data_sended_format),
-                (TextView) findViewById(com.smartwebee.android.blespp.R.id.notify_speed_text),
-                (Button) findViewById(com.smartwebee.android.blespp.R.id.send_data_btn),
-                (Button) findViewById(com.smartwebee.android.blespp.R.id.clean_data_btn),
-                (Button) findViewById(com.smartwebee.android.blespp.R.id.clean_text_btn),
-                new BluetoothTools.BTReceiver() {
-                    @Override
-                    public void onReceive(String s) {
-                        Buffer += s;
-                        String standardFrame = "";
-                        try {
-                            if (Buffer.indexOf(FrameTail) == -1) {
-                                return;
-                            } else if (Buffer.indexOf(FrameHead) > Buffer.indexOf(FrameTail) || Buffer.indexOf(FrameTail) - Buffer.indexOf(FrameHead) > 28) {
-                                index = Buffer.indexOf(FrameHead) + 4;
-                                if (index < Buffer.length() && index != -1) {
-                                    Buffer = Buffer.substring(index);
-                                }
-                            } else {
-                                standardFrame = Buffer.substring(Buffer.indexOf(FrameHead), Buffer.indexOf(FrameTail) + 4);
-                                Buffer = Buffer.substring(Buffer.indexOf(FrameTail) + 4);
-                            }
-                            if (TextUtils.isEmpty(standardFrame) || !standardFrame.startsWith(FrameHead) || !standardFrame.endsWith(FrameTail)) {
-                                //Toast.makeText(LocationMapActivity.this, "数据帧格式错误", Toast.LENGTH_LONG).show();
-                                standardFrame = null;
-                                return;
-                            }
-                            Log.i("Alex", Buffer);
-                            Log.i("Alex", "掐头去尾后的值" + standardFrame);
-                            standardFrame = standardFrame.substring(4, 24);
-                        } catch (Exception e) {
-                            Log.i("Error", e.getMessage());
-                        }
-                        String[] results = standardFrame.split(",");
-
-                        if (results.length < 3) {
-                            Toast.makeText(LocationMapActivity.this, "数据帧数据错误", Toast.LENGTH_LONG).show();
-                            return;
-                        }
-                        try {
-                            double angle = new Double(results[0]);
-                            double distance = new Double(results[1]);
-                            float speed = new Float(results[2]);
-
-                            double[] latlng = LocationUtils.getGPSLocation(myPosition.latitude, myPosition.longitude, distance, angle);
-                            t = new RadarTarget();
-                            t.latitude = latlng[0];
-                            t.longitude = latlng[1];
-                            t.speed = speed / 3.6f;
-                            t.targetId = 778899;
-                            t.targetName = "目标位置";
-                            t.time = System.currentTimeMillis();
-                            Log.i("Alex", "雷达传来的目标是" + t);
-
-                        } catch (Exception e) {
-                            Toast.makeText(LocationMapActivity.this, "数据帧乱码", Toast.LENGTH_LONG).show();
-                        }
-                     }
-                });
-        bt_status = findViewById(R.id.bt_status);
-        bt_status.setVisibility(View.GONE);
-        findViewById(R.id.bt_showBT).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if(bt_status.getVisibility() == View.GONE){
-                    bt_status.setVisibility(View.VISIBLE);
-                    return;
-                }else {
-                    bt_status.setVisibility(View.GONE);
-                }
-
-            }
-        });
+        return view;
     }
 
     @Override
-    protected void onStart() {
+    public void onStart() {
         super.onStart();
         try {
-            TelephonyManager tm = (TelephonyManager) LocationMapActivity.this.getSystemService(Context.TELEPHONY_SERVICE);
+            TelephonyManager tm = (TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE);
             String deviceId = tm.getDeviceId();
             String sim = tm.getSimSerialNumber();
-            String imsi = ((TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
+            String imsi = ((TelephonyManager) getActivity().getSystemService(Context.TELEPHONY_SERVICE)).getDeviceId();
             userDeviceID = (deviceId+sim+imsi).hashCode();
         }catch (Exception e){
 
@@ -416,39 +333,52 @@ public class LocationMapActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
-        //mLocationClient.stopLocation();//停止定位后，本地定位服务并不会被销毁
-    }
-    @Override
-    protected void onDestroy() {
+    public void onDestroy() {
         super.onDestroy();
         //在activity执行onDestroy时执行mMapView.onDestroy()，销毁地图
         mapView.onDestroy();
         mLocationClient.onDestroy();//销毁定位客户端，同时销毁本地定位服务。
-        if(bluetoothTools != null)bluetoothTools.onDestroy();
     }
+
     @Override
-    protected void onResume() {
+    public void onResume() {
         super.onResume();
         //在activity执行onResume时执行mMapView.onResume ()，重新绘制加载地图
         mapView.onResume();
         Log.i("Alex","是否恢复了定位"+mLocationClient.isStarted());
         mLocationClient.startLocation();
-        if(bluetoothTools != null)bluetoothTools.onResume();
     }
+
     @Override
-    protected void onPause() {
+    public void onPause() {
         super.onPause();
         //在activity执行onPause时执行mMapView.onPause ()，暂停地图的绘制
         mapView.onPause();
-        if(bluetoothTools != null)bluetoothTools.onPause();
     }
+
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         //在activity执行onSaveInstanceState时执行mMapView.onSaveInstanceState (outState)，保存地图当前的状态
         mapView.onSaveInstanceState(outState);
+    }
+
+    // TODO: Rename method, update argument and hook method into UI event
+    public void onButtonPressed(Uri uri) {
+        if (mListener != null) {
+            mListener.onFragmentInteraction(uri);
+        }
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        if (context instanceof OnFragmentInteractionListener) {
+            mListener = (OnFragmentInteractionListener) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement OnFragmentInteractionListener");
+        }
     }
 
     public static class ReciveMessage{
@@ -456,11 +386,20 @@ public class LocationMapActivity extends AppCompatActivity {
         public ArrayList<RadarTarget> locationList;
     }
 
+
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
+    }
+
+
     /**
      * 更新附近手机的位置并显示在地图上
      */
     public void updatePhonePosition(){
-        NetworkTools.sendPhoneLocationToServer(ipAddress,myPosition,LocationMapActivity.this,
+        NetworkTools.sendPhoneLocationToServer(ipAddress,myPosition,getActivity(),
                 new StringCallback() {
                     @Override
                     public void onSuccess(String s, Call call, Response response) {
@@ -515,7 +454,7 @@ public class LocationMapActivity extends AppCompatActivity {
                     public void onError(Call call, Response response, Exception e) {
                         super.onError(call, response, e);
                         Log.i("Alex","访问失败",e);
-                        Toast.makeText(LocationMapActivity.this,"访问服务器失败",Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),"访问服务器失败",Toast.LENGTH_LONG).show();
                     }
                 });
     }
@@ -524,7 +463,7 @@ public class LocationMapActivity extends AppCompatActivity {
      * 在收到雷达发来的目标信息后执行该方法，把雷达发现的目标发到服务器并进行显示
      */
     public void updateRadarTarget(final Collection<RadarTarget> targets){
-        NetworkTools.sendTargetLocationToServer(ipAddress,targets,LocationMapActivity.this,2,//让所有客户端的target id都相同，那么就不会收到手机的位置了
+        NetworkTools.sendTargetLocationToServer(ipAddress,targets,getActivity(),2,//让所有客户端的target id都相同，那么就不会收到手机的位置了
                 new StringCallback() {
                     @Override
                     public void onSuccess(String s, Call call, Response response) {
@@ -590,8 +529,23 @@ public class LocationMapActivity extends AppCompatActivity {
                     public void onError(Call call, Response response, Exception e) {
                         super.onError(call, response, e);
                         Log.i("Alex","访问失败",e);
-                        Toast.makeText(LocationMapActivity.this,"访问服务器失败",Toast.LENGTH_LONG).show();
+                        Toast.makeText(getActivity(),"访问服务器失败",Toast.LENGTH_LONG).show();
                     }
                 });
+    }
+
+    /**
+     * This interface must be implemented by activities that contain this
+     * fragment to allow an interaction in this fragment to be communicated
+     * to the activity and potentially other fragments contained in that
+     * activity.
+     * <p>
+     * See the Android Training lesson <a href=
+     * "http://developer.android.com/training/basics/fragments/communicating.html"
+     * >Communicating with Other Fragments</a> for more information.
+     */
+    public interface OnFragmentInteractionListener {
+        // TODO: Update argument type and name
+        void onFragmentInteraction(Uri uri);
     }
 }

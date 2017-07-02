@@ -18,6 +18,7 @@ import com.lzy.okgo.callback.StringCallback;
 import com.smartwebee.android.blespp.BleSppActivity;
 import com.smartwebee.android.blespp.DeviceScanActivity;
 
+import org.alex.zhaoxuan.Activities.FunctionActivity;
 import org.alex.zhaoxuan.Activities.LocationMapActivity;
 
 import java.util.Timer;
@@ -129,7 +130,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn_map:
                 //保存室内模式经纬度
                 saveIndorLatitudeAndLongitude();
-                Intent intent = new Intent(MainActivity.this, LocationMapActivity.class);
+                Intent intent = new Intent(MainActivity.this, FunctionActivity.class);
                 intent.putExtra("ip",ipAddress.getText().toString());
                 if(tv_btName.getText().toString().startsWith("蓝牙")) {
                     intent.putExtra(BleSppActivity.EXTRAS_DEVICE_NAME, tv_btName.getText().toString().substring(5));
