@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,11 +24,13 @@ import org.alex.zhaoxuan.LocationUtils;
 import org.alex.zhaoxuan.RadarTarget;
 import org.alex.zhaoxuan.R;
 
+import com.ipcamera.demo.AddCameraFragment;
+import com.ipcamera.demo.PlayFragment;
 import com.smartwebee.android.blespp.BleSppActivity;
 
 
 
-public class FunctionActivity extends AppCompatActivity implements RadarMapFragment.OnFragmentInteractionListener{
+public class FunctionActivity extends AppCompatActivity implements RadarMapFragment.OnFragmentInteractionListener,View.OnClickListener,AddCameraFragment.OnFragmentInteractionListener,PlayFragment.OnFragmentInteractionListener{
     //下面这几项是要和MapFragment同步的
     private String ipAddress;//服务器IP地址
     public RadarTarget myPosition = new RadarTarget();//我的位置
@@ -35,14 +38,17 @@ public class FunctionActivity extends AppCompatActivity implements RadarMapFragm
     String indoor_lng;
 
     private FragmentManager mFragmentManager;//fragment管理者
+    private Button bt_map,bt_video,bt_settings;
 
     private String Buffer = "";
     private int index = 0;
-    private static String FrameHead = "0XAA";
-    private static String FrameTail = "0XBB";
+    private static String FrameHead = "AA";
+    private static String FrameTail = "BB";
 
     FrameLayout fragmentsHolder;
     private RadarMapFragment mapFragment;
+    private AddCameraFragment cameraFragment;
+    private PlayFragment playFragment;
 
 
     //==========判断是否已经接通了蓝牙=================
@@ -93,13 +99,27 @@ public class FunctionActivity extends AppCompatActivity implements RadarMapFragm
     }
 
     @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getRepeatCount() == 0) {
+            finish();
+            return false;
+        }
+        return false;
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_function);
         ipAddress = getIntent().getStringExtra("ip");
         indoor_lat = getIntent().getStringExtra("indoor_lat");
         indoor_lng = getIntent().getStringExtra("indoor_lng");
-
+        bt_map = (Button)findViewById(R.id.bt_map);
+        bt_video = (Button)findViewById(R.id.bt_video);
+        bt_settings = (Button)findViewById(R.id.bt_settings);
+        bt_map.setOnClickListener(this);
+        bt_video.setOnClickListener(this);
+        bt_settings.setOnClickListener(this);
 
         fragmentsHolder = (FrameLayout) findViewById(R.id.fragmentsHolder);
 
@@ -143,13 +163,13 @@ public class FunctionActivity extends AppCompatActivity implements RadarMapFragm
                             if (Buffer.indexOf(FrameTail) == -1) {
                                 return;
                             } else if (Buffer.indexOf(FrameHead) > Buffer.indexOf(FrameTail) || Buffer.indexOf(FrameTail) - Buffer.indexOf(FrameHead) > 28) {
-                                index = Buffer.indexOf(FrameHead) + 4;
+                                index = Buffer.indexOf(FrameHead) + FrameHead.length();
                                 if (index < Buffer.length() && index != -1) {
                                     Buffer = Buffer.substring(index);
                                 }
                             } else {
-                                standardFrame = Buffer.substring(Buffer.indexOf(FrameHead), Buffer.indexOf(FrameTail) + 4);
-                                Buffer = Buffer.substring(Buffer.indexOf(FrameTail) + 4);
+                                standardFrame = Buffer.substring(Buffer.indexOf(FrameHead), Buffer.indexOf(FrameTail) + FrameTail.length());
+                                Buffer = Buffer.substring(Buffer.indexOf(FrameTail) + FrameTail.length());
                             }
                             if (TextUtils.isEmpty(standardFrame) || !standardFrame.startsWith(FrameHead) || !standardFrame.endsWith(FrameTail)) {
                                 //Toast.makeText(LocationMapActivity.this, "数据帧格式错误", Toast.LENGTH_LONG).show();
@@ -158,7 +178,7 @@ public class FunctionActivity extends AppCompatActivity implements RadarMapFragm
                             }
                             Log.i("Alex", Buffer);
                             Log.i("Alex", "掐头去尾后的值" + standardFrame);
-                            standardFrame = standardFrame.substring(4, 24);
+                            standardFrame = standardFrame.substring(FrameHead.length(), standardFrame.length()-FrameTail.length());
                         } catch (Exception e) {
                             Log.i("Error", e.getMessage());
                         }
@@ -228,5 +248,41 @@ public class FunctionActivity extends AppCompatActivity implements RadarMapFragm
     @Override
     public void onFragmentInteraction(Uri uri) {
 
+    }
+
+    @Override
+    public void onClick(View v) {
+        FragmentTransaction mFragmentTransaction = mFragmentManager.beginTransaction();
+        switch (v.getId()){
+            case R.id.bt_map:
+                if(cameraFragment != null)mFragmentTransaction.hide(cameraFragment);
+                if(playFragment != null)mFragmentTransaction.hide(playFragment);
+                mFragmentTransaction.show(mapFragment).commit();
+                break;
+            case R.id.bt_video:
+                if(cameraFragment == null){
+                    cameraFragment = AddCameraFragment.newInstance("","");
+                    mFragmentTransaction.hide(mapFragment);
+                    if(playFragment != null)mFragmentTransaction.hide(playFragment);
+                    mFragmentTransaction.add(R.id.fragmentsHolder,cameraFragment).commit();
+                }else {
+                    mFragmentTransaction.hide(mapFragment);
+                    if(playFragment != null)mFragmentTransaction.hide(playFragment);
+                    mFragmentTransaction.show(cameraFragment).commit();
+                }
+                break;
+            case R.id.bt_settings:
+                if(playFragment == null){
+                    playFragment = PlayFragment.newInstance("","");
+                    mFragmentTransaction.hide(mapFragment);
+                    mFragmentTransaction.hide(cameraFragment);
+                    mFragmentTransaction.add(R.id.fragmentsHolder,playFragment).commit();
+                }else {
+                    mFragmentTransaction.hide(mapFragment);
+                    mFragmentTransaction.hide(cameraFragment);
+                    mFragmentTransaction.show(playFragment).commit();
+                }
+                break;
+        }
     }
 }

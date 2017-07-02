@@ -1,0 +1,26 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 15
+    buildToolsVersion "19.1.0"
+
+    defaultConfig {
+//        applicationId "demo.ipcamera.com.ipcamerdemo"
+        minSdkVersion 9
+        targetSdkVersion 15
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(include: ['*.jar'], dir: 'libs')
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:support-v4:25.3.1'
+}

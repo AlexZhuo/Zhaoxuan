@@ -178,7 +178,7 @@ public class RadarMapFragment extends Fragment {
                     CameraUpdate mCameraUpdate = CameraUpdateFactory.newCameraPosition(new CameraPosition(new LatLng(myPosition.latitude,myPosition.longitude),mapZoomLevel,0,0));
                     aMap.moveCamera(mCameraUpdate);
                 }
-            },2000);
+            },2500);
             MarkerOptions markerOption = new MarkerOptions();
             markerOption.position(new LatLng(myPosition.latitude,myPosition.longitude));
             markerOption.title("雷达位置").snippet("经度："+myPosition.longitude+"\n纬度："+myPosition.latitude);
@@ -249,21 +249,24 @@ public class RadarMapFragment extends Fragment {
         mLocationListener = new AMapLocationListener(){
             @Override
             public void onLocationChanged(AMapLocation amapLocation) {
-                if (amapLocation == null)return;
-                if (amapLocation.getErrorCode() == 0) {
+                if (!indoorMode && amapLocation == null){
+                    Toast.makeText(getActivity(),"手机定位失败2",Toast.LENGTH_LONG).show();
+                    return;
+                }
+                if (amapLocation.getErrorCode() == 0 || indoorMode) {
                     //可在其中解析amapLocation获取相应内容。
-                    myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
+                    if(amapLocation != null)myPosition.sensorType = amapLocation.getLocationType();//获取当前定位结果来源，如网络定位结果，详见定位类型表
                     if(!indoorMode) {//非室内模式使用GPS信息
                         myPosition.latitude = amapLocation.getLatitude();//获取纬度
                         myPosition.longitude = amapLocation.getLongitude();//获取经度
                         myPosition.accuracy = amapLocation.getAccuracy();//获取精度信息
                     }
-                    myPosition.speed = amapLocation.getSpeed();
+                    if(amapLocation != null)myPosition.speed = amapLocation.getSpeed();
                     //获取定位时间
-                    myPosition.time = amapLocation.getTime();
+                    if(amapLocation != null) myPosition.time = amapLocation.getTime();
                     myPosition.targetName = Build.BRAND+" "+Build.MODEL;
-                    myPosition.city = amapLocation.getCity();
-                    myPosition.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
+                    if(amapLocation != null)myPosition.city = amapLocation.getCity();
+                    if(amapLocation != null)myPosition.jiedao = amapLocation.getDistrict()+" "+amapLocation.getStreet();
                     myPosition.targetId = userDeviceID;
                     ((FunctionActivity)getActivity()).myPosition = myPosition;
                     myLatitude.setText("经度："+myPosition.longitude);

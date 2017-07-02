@@ -110,7 +110,7 @@ public class BluetoothTools implements View.OnClickListener{
 //        new Handler().postDelayed(new Runnable() {
 //            @Override
 //            public void run() {
-//                receiver.onReceive("0XAA60.000,85.505,35.0030XBB");
+//                receiver.onReceive("AA120,115.5,17BB");
 //            }
 //        },10000);
 

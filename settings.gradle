@@ -1,1 +1,1 @@
-include ':app', ':blespp'
+include ':app', ':blespp', ':IPCamera'

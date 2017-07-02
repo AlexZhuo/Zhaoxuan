@@ -62,8 +62,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         tv_btAddress.setOnClickListener(this);
         tv_indoor.setOnClickListener(this);
         SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
-        et_latitude.setText(sp.getString("latitude","36.00000"));
-        et_longitude.setText(sp.getString("longitude", "120.00000"));
+        et_latitude.setText(sp.getString("latitude","36.075847"));
+        et_longitude.setText(sp.getString("longitude", "120.388566"));
 
         //室内模式开启后的事件
         tb_indoor.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
@@ -209,8 +209,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }catch (Exception e){
             Toast.makeText(MainActivity.this,"经纬度填写不符合规范",Toast.LENGTH_LONG).show();
             SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
-            et_latitude.setText(sp.getString("latitude","36.00000"));
-            et_longitude.setText(sp.getString("longitude", "120.00000"));
+            et_latitude.setText(sp.getString("latitude","36.075847"));
+            et_longitude.setText(sp.getString("longitude", "120.388566"));
         }
         SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
         SharedPreferences.Editor editor = sp.edit();
