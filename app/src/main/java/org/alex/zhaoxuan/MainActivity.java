@@ -5,6 +5,7 @@ import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.ipcamera.demo.BridgeService;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.StringCallback;
 import com.smartwebee.android.blespp.BleSppActivity;
@@ -26,6 +28,7 @@ import java.util.TimerTask;
 
 import okhttp3.Call;
 import okhttp3.Response;
+import vstc2.nativecaller.NativeCaller;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -80,6 +83,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
             }
         });
+
+        //开启IP摄像头有关服务，加载jni
+        Intent intent = new Intent();
+        intent.setClass(MainActivity.this, BridgeService.class);
+        startService(intent);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    NativeCaller.PPPPInitialOther("ADCBBFAOPPJAHGJGBBGLFLAGDBJJHNJGGMBFBKHIBBNKOKLDHOBHCBOEHOKJJJKJBPMFLGCPPJMJAPDOIPNL");
+                    Log.i("Alex","jni加载完毕");
+                } catch (Exception e) {
+
+                }
+            }
+        }).start();
     }
 
     @Override
