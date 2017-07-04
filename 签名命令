@@ -1,0 +1,1 @@
+jarsigner -verbose -keystore F:\Zhaoxuan\Zhaoxuan\release.keystore -signedjar app-signed.apk -digestalg SHA1 -sigalg MD5withRSA app-release-unsigned.apk android.keystore

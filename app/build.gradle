@@ -2,15 +2,21 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    buildToolsVersion "19.1.0"
 
     defaultConfig {
         applicationId "org.alex.zhaoxuan"
-        minSdkVersion 18
-        targetSdkVersion 23
+        minSdkVersion 15
+        targetSdkVersion 15
         versionCode 1
         versionName "1.0"
     }
+    android {
+        lintOptions {
+            abortOnError false
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
