@@ -22,7 +22,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="10dp"
-        android:text="120.24.231.67"
+        android:text="211.159.164.135"
         android:layout_toRightOf="@id/ip"
         />
 

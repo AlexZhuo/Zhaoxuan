@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn_test.setOnClickListener(this);
 
         SharedPreferences sp = getSharedPreferences("config", MODE_PRIVATE);
+        ipAddress.setText(sp.getString("ipAddress","211.159.164.135"));
         port.setText(sp.getString("port","8080"));
         name.setText(sp.getString("name", Build.BRAND+" "+Build.MODEL));
 
@@ -95,6 +96,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 SharedPreferences.Editor editor = sp.edit();
                 editor.putString("name", name.getText().toString());
                 editor.putString("port", port.getText().toString());
+                editor.putString("ipAddress",ipAddress.getText().toString());
                 editor.commit();
                 Intent intent = new Intent(MainActivity.this, LocationMapActivity.class);
                 intent.putExtra("ip",ipAddress.getText().toString()+":"+port.getText().toString());
